@@ -2,6 +2,7 @@
   "name": "@srhenry/storage-manager",
   "version": "1.0.2",
   "description": "A Custom filesystem wrapper for Node.JS implemented in Typescript.",
+  "repository": "gitlab:SrHenry/storage-manager",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
