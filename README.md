@@ -45,4 +45,7 @@ await StorageManager.mkdir("new/path")
 
 // Delete file
 await StorageManager.delete("path/to/file")
+
+// Get stream object of a file
+let stream = StorageManager.fileStream("path/to/file")
 ```

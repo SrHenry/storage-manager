@@ -1,7 +1,26 @@
-import fs from "fs"
+import fs, { ReadStream } from "fs"
 import Stream from "stream"
 import { removeLastElement } from "./utils"
 import { lt } from "semver"
+
+
+/** Read mode */
+type ReadMode = "r"
+/** Write mode */
+type WriteMode = "w"
+/** Read and write mode */
+type DuplexMode = "rw"
+
+/** File modes supported */
+export type FileStreamMode = ReadMode | WriteMode | DuplexMode
+/** Stream options supported */
+export type FileStreamOptions = Stream.ReadableOptions | Stream.WritableOptions | Stream.DuplexOptions
+
+/** Helper to infer Stream type from file mode */
+type FileStreamType<T extends FileStreamMode> = T extends ReadMode ? Stream.Readable : T extends WriteMode ? Stream.Writable : T extends DuplexMode ? Stream.Duplex : never
+/** Helper to infer StreamOptions type from file mode */
+type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode ? Stream.ReadableOptions : T extends WriteMode ? Stream.WritableOptions : T extends DuplexMode ? Stream.DuplexOptions : never
+
 
 /**
  * A filesystem wrapper class
@@ -47,12 +66,10 @@ export class StorageManager
     public static async get(path: string, encoding: BufferEncoding = "utf-8")
     {
         return new Promise<string>((resolve, reject) => {
-            // const buffers = await
             StorageManager.getAsBuffers(path)
                 .then(buffers => resolve(buffers.map(buffer => buffer.toString(encoding)).join("")))
                 .catch(reject)
-            // resolve(buffers.map(buffer => buffer.toString(encoding)).join(""))
-        })
+            })
     }
 
     /**
@@ -67,11 +84,10 @@ export class StorageManager
             if (await StorageManager.exists(path))
             {
                 const arraybuffer = new Array<Buffer>()
-                const readStream = fs.createReadStream(path)
+                const readStream = StorageManager.fileStream(path, "r")
 
                 readStream.on('error', reject)
 
-                // Listen for data
                 readStream.on('data', chunk => {
                     if (Buffer.isBuffer(chunk))
                         arraybuffer.push(chunk)
@@ -79,24 +95,57 @@ export class StorageManager
                         arraybuffer.push(Buffer.from(chunk))
                 });
 
-                // File is done being read
                 readStream.on('close', () => resolve(arraybuffer))
-
-                // const write = (arraybuffer => (((chunk, _, next) => {
-                //     if (Buffer.isBuffer(chunk))
-                //         arraybuffer.push(chunk)
-                //     else
-                //         arraybuffer.push(Buffer.from(chunk, _))
-                //     // next()
-                // }) as Stream.WritableOptions['write']))(arraybuffer)
-
-                // StorageManager.readFileStream(path, {write})
-                //     .on('close', () => {
-                //         resolve(arraybuffer)
-                //     })
             }
             else reject(null)
         })
+    }
+
+    /**
+     * Create a stream of file at given path.
+     * @param path Path to file
+     * @param mode file stream mode, defaults 'rw'
+     * @param options Optional StreamOptions object to customize stream
+     *
+     * @returns Stream object of file
+     */
+    public static fileStream(path: string): Stream.Duplex
+    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: DuplexMode , options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
+
+    public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> = {}): FileStreamType<typeof mode>
+    {
+        switch (mode ?? "rw")
+        {
+            case "r":
+                return fs.createReadStream(path)
+                break
+            case "w":
+                return fs.createWriteStream(path)
+                break
+            case "rw":
+                const r = fs.createReadStream(path)
+                const w = fs.createWriteStream(path)
+
+                const streamOptions: FileStreamOptionsType<typeof mode> = {
+                    read: r.read.bind(r),
+                    write: w.write.bind(w),
+                }
+
+                for (const [key, value] of Object.entries(options))
+                    streamOptions[key as keyof FileStreamOptionsType<typeof mode>] = value
+
+                const stream = new Stream.Duplex(streamOptions)
+
+                return stream
+                break
+        }
+    }
+
+    public createReadStreamStream(path: string)
+    {
+        return fs.createReadStream(path)
     }
 
     /**
