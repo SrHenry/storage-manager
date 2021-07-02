@@ -140,6 +140,8 @@ export class StorageManager
 
                 return stream
                 break
+            default:
+                throw new Error("Invalid file stream mode!")
         }
     }
 

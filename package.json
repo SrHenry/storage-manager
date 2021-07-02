@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx tsc"
+    "build": "npx tsc",
+    "install": "npx tsc"
   },
   "keywords": [
     "filesystem",
@@ -21,9 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "semver": "^7.3.4",
-    "typescript": "^4.0.2"
-  },
-  "devDependencies": {
+    "typescript": "^4.0.2",
     "@types/node": ">=10.12.0",
     "@types/semver": "^7.3.4"
   }
