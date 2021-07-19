@@ -15,7 +15,7 @@ export class DirectoryList
         return this._name
     }
 
-    private set name(name: string)
+    public set name(name: string)
     {
         this._name = name
     }
