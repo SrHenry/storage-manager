@@ -1,7 +1,8 @@
-import fs, { ReadStream } from "fs"
+import fs from "fs"
 import Stream from "stream"
 import { removeLastElement } from "./utils"
 import { lt } from "semver"
+import { DirectoryList } from "./DirectoryList"
 
 
 /** Read mode */
@@ -158,6 +159,77 @@ export class StorageManager
     public static exists(path: string): Promise<boolean>
     {
         return new Promise(resolve => fs.access(path, fs.constants.F_OK, err => resolve(!err)))
+    }
+
+    public static isFile(path: string): Promise<boolean>
+    {
+        return new Promise(async (resolve, reject) => {
+            if (await StorageManager.exists(path))
+                fs.lstat(path, (err, stats) => {
+                    if (!!err)
+                        reject(err)
+                    resolve(stats.isFile())
+                })
+            else resolve(false)
+        })
+    }
+
+    public static isDirectory(path: string): Promise<boolean>
+    {
+        return new Promise(async (resolve, reject) => {
+            if (await StorageManager.exists(path))
+                fs.lstat(path, (err, stats) => {
+                    if (!!err)
+                        reject(err)
+                    resolve(stats.isDirectory())
+                })
+            else resolve(false)
+        })
+    }
+
+    /**
+     * Wrapper to list directory contents
+     * @param path Path to list
+     * @param recursive Optional flag to list recursively
+     */
+    public static listDirectory(path: string): Promise<string[]>
+    public static listDirectory(path: string, recursive: false): Promise<string[]>
+    public static listDirectory(path: string, recursive: true): Promise<DirectoryList>
+    public static listDirectory(path: string, recursive = false): Promise<string[] | DirectoryList>
+    {
+        if (!!recursive)
+        {
+            return new Promise<DirectoryList>((resolve, reject) => {
+                fs.readdir(path as string, async (err, list) => {
+                    if (!!err)
+                        reject(err)
+                    else
+                    {
+                        const directories = await Promise.all(list.map(StorageManager.isDirectory))
+                        const files = list.filter((_, i) => !directories[i])
+
+                        const innerDirectories = list.filter((_, i) => directories[i])
+
+                        const dirlist = await Promise.all(innerDirectories.map(file => StorageManager.listDirectory(file, true)))
+
+                        resolve(new DirectoryList(path, [...dirlist, ...files]))
+                    }
+                })
+            })
+        }
+        else
+        {
+            return new Promise<string[]>((resolve, reject) => {
+                fs.readdir(path as string, async (err, list) => {
+                    if (!!err)
+                        reject(err)
+                    else
+                    {
+                        resolve(list)
+                    }
+                })
+            })
+        }
     }
 
     /**
