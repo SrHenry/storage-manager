@@ -49,15 +49,32 @@ export class DirectoryList
 
     public [Symbol.toPrimitive](hint: TypeOfTag)
     {
-        if (hint === 'string')
+        switch (hint)
         {
-            const directoriesFirst = this.struct.sort((a, b) => a instanceof DirectoryList ? (b instanceof DirectoryList ? 0 : -1) : (b instanceof DirectoryList ? 1 : 0))
-            let str = `DirectoryList: ${this.name}\n`;
-            for (const row of directoriesFirst)
-                str += `\t${row}\n`
-
-            return str
+            case 'string':
+                return this.__toString()
         }
+    }
+
+    private __toString(deep: number = 0, traceChar = " ", padUnit = 4)
+    {
+        const directoriesFirst = this.struct.sort((a, b) => a instanceof DirectoryList ? (b instanceof DirectoryList ? 0 : -1) : (b instanceof DirectoryList ? 1 : 0))
+        let str = `DirectoryList: ${this.name} {\n`
+
+        str = str.padStart(str.length + (deep * padUnit), traceChar)
+
+        for (const row of directoriesFirst)
+        {
+            if (row  instanceof DirectoryList)
+                str += row.__toString(deep + 1)
+            else
+            {
+                let out = `File: ${row}\n`
+                str += out.padStart(out.length + ((deep + 1) * padUnit), traceChar)
+            }
+        }
+
+        return str.concat("}\n".padStart(2 + (deep * 2)))
     }
 
     public toString()

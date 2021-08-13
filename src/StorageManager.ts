@@ -1,5 +1,6 @@
 import fs from "fs"
 import Stream from "stream"
+import Path from "path"
 import { removeLastElement } from "./utils"
 import { lt } from "semver"
 import { DirectoryList } from "./DirectoryList"
@@ -34,9 +35,19 @@ export class StorageManager
      * @param value Plain string to insert into file.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async put(path: string, value: string, charset: BufferEncoding = "utf-8")
+    public static async put(path: string, value: string | string[], charset: BufferEncoding = "utf-8")
     {
-        return await StorageManager.writeStorage(path, Buffer.from(value, charset), charset)
+        // return await StorageManager.writeStorage(path, Buffer.from(value, charset), charset)
+        if (path.split("/").length > 1)
+            await StorageManager.mkdir(Path.dirname(path), { recursive: true })
+
+        if (Array.isArray(value))
+        {
+            const wstream = StorageManager.fileStream(path, "w")
+            return await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(value, charset, err => !!err ? reject(err) : resolve(true)))))
+        } else {
+            return await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(value, charset, err => !!err ? reject(err) : resolve(true)))
+        }
     }
 
     /**
@@ -48,8 +59,10 @@ export class StorageManager
     public static append(path: string, value: string, charset: BufferEncoding = "utf-8")
     {
         if (StorageManager.exists(path))
-            return new Promise<void>((resolve, reject) => {
-                fs.appendFile(path, Buffer.from(value, charset), err => {
+            return new Promise<void>((resolve, reject) =>
+            {
+                fs.appendFile(path, Buffer.from(value, charset), err =>
+                {
                     if (!!err)
                         reject(err)
                     else resolve()
@@ -66,30 +79,31 @@ export class StorageManager
      */
     public static async get(path: string, encoding: BufferEncoding = "utf-8")
     {
-        return new Promise<string>((resolve, reject) => {
-            StorageManager.getAsBuffers(path)
-                .then(buffers => resolve(buffers.map(buffer => buffer.toString(encoding)).join("")))
+        return new Promise<string>((resolve, reject) =>
+        {
+            StorageManager.getAsBuffer(path)
+                .then(buffer => resolve(buffer.toString(encoding)))
                 .catch(reject)
-            })
+        })
     }
 
     /**
      * Wrapper to read file (load all data into array of buffers, intended for small binary files).
      * @param path Path to read file.
-     * @param encoding Optional encoding of string. Default is "utf-8".
      * @returns The array with the binary buffers streamed of the file.
      */
     public static getAsBuffers(path: string)
     {
-        return new Promise<Buffer[]>(async (resolve, reject) => {
-            if (await StorageManager.exists(path))
-            {
+        return new Promise<Buffer[]>(async (resolve, reject) =>
+        {
+            if (await StorageManager.exists(path)) {
                 const arraybuffer = new Array<Buffer>()
                 const readStream = StorageManager.fileStream(path, "r")
 
                 readStream.on('error', reject)
 
-                readStream.on('data', chunk => {
+                readStream.on('data', chunk =>
+                {
                     if (Buffer.isBuffer(chunk))
                         arraybuffer.push(chunk)
                     else
@@ -99,6 +113,19 @@ export class StorageManager
                 readStream.on('close', () => resolve(arraybuffer))
             }
             else reject(null)
+        })
+    }
+
+    /**
+     * Wrapper to read file (load all data into a single buffer, intended for small binary files).
+     * @param path Path to read file.
+     * @returns The array with the binary buffers streamed of the file.
+     */
+    public static getAsBuffer(path: string)
+    {
+        return new Promise<Buffer>(async (resolve, reject) =>
+        {
+            resolve(Buffer.concat(await StorageManager.getAsBuffers(path)))
         })
     }
 
@@ -113,21 +140,22 @@ export class StorageManager
     public static fileStream(path: string): Stream.Duplex
     public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
     public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: DuplexMode , options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
 
     public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> = {}): FileStreamType<typeof mode>
     {
-        switch (mode ?? "rw")
-        {
+        switch (mode ?? "rw") {
             case "r":
-                return fs.createReadStream(path)
+                return fs.createReadStream(path, options)
                 break
             case "w":
-                return fs.createWriteStream(path)
+                return fs.createWriteStream(path, options)
                 break
             case "rw":
-                const r = fs.createReadStream(path)
-                const w = fs.createWriteStream(path)
+                const [r, w] = [
+                    fs.createReadStream(path, options),
+                    fs.createWriteStream(path, options)
+                ]
 
                 const streamOptions: FileStreamOptionsType<typeof mode> = {
                     read: r.read.bind(r),
@@ -163,9 +191,11 @@ export class StorageManager
 
     public static isFile(path: string): Promise<boolean>
     {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve, reject) =>
+        {
             if (await StorageManager.exists(path))
-                fs.lstat(path, (err, stats) => {
+                fs.lstat(path, (err, stats) =>
+                {
                     if (!!err)
                         reject(err)
                     resolve(stats.isFile())
@@ -176,9 +206,11 @@ export class StorageManager
 
     public static isDirectory(path: string): Promise<boolean>
     {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve, reject) =>
+        {
             if (await StorageManager.exists(path))
-                fs.lstat(path, (err, stats) => {
+                fs.lstat(path, (err, stats) =>
+                {
                     if (!!err)
                         reject(err)
                     resolve(stats.isDirectory())
@@ -197,39 +229,38 @@ export class StorageManager
     public static listDirectory(path: string, recursive: true): Promise<DirectoryList>
     public static listDirectory(path: string, recursive = false): Promise<string[] | DirectoryList>
     {
-        if (!!recursive)
+        return new Promise(async (_return, _throw) =>
         {
-            return new Promise<DirectoryList>((resolve, reject) => {
-                fs.readdir(path as string, async (err, list) => {
+            if (await StorageManager.isFile(path))
+                _return([path])
+            else if (!!recursive) {
+                fs.readdir(path as string, async (err, list) =>
+                {
                     if (!!err)
-                        reject(err)
-                    else
-                    {
-                        const directories = await Promise.all(list.map(StorageManager.isDirectory))
+                        _throw(err)
+                    else {
+                        const directories = await Promise.all(list.map(node => Path.join(path, node)).map(StorageManager.isDirectory))
                         const files = list.filter((_, i) => !directories[i])
 
                         const innerDirectories = list.filter((_, i) => directories[i])
 
-                        const dirlist = await Promise.all(innerDirectories.map(file => StorageManager.listDirectory(file, true)))
+                        const dirlist = await Promise.all(innerDirectories.map(file => StorageManager.listDirectory(Path.join(path, file), true)))
 
-                        resolve(new DirectoryList(path, [...dirlist, ...files]))
+                        _return(new DirectoryList(path, [...dirlist, ...files]))
                     }
                 })
-            })
-        }
-        else
-        {
-            return new Promise<string[]>((resolve, reject) => {
-                fs.readdir(path as string, async (err, list) => {
+            }
+            else {
+                fs.readdir(path as string, async (err, list) =>
+                {
                     if (!!err)
-                        reject(err)
-                    else
-                    {
-                        resolve(list)
+                        _throw(err)
+                    else {
+                        _return(list)
                     }
                 })
-            })
-        }
+            }
+        })
     }
 
     /**
@@ -241,8 +272,9 @@ export class StorageManager
      */
     public static checkExist(path: string, cb?: (exists?: (boolean | PromiseLike<boolean> | undefined)) => any): Promise<boolean>
     {
-        return new Promise((resolve, reject) => fs.access(path, fs.constants.F_OK, err => {
-            !!err? reject(cb? cb(false) : err) : resolve(cb? cb(true) : true)
+        return new Promise((resolve, reject) => fs.access(path, fs.constants.F_OK, err =>
+        {
+            !!err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
         }))
     }
 
@@ -258,13 +290,13 @@ export class StorageManager
 
         // removeLastElement(filePath.split("/"))
 
-        fs.access(removeLastElement(filePath.split("/")).join("/"), fs.constants.F_OK, err => {
-            if (err)
-            {
-                fs.mkdir(removeLastElement(filePath.split("/")).join("/"), {recursive: true}, (err, path) => {
-                    if (err)
-                    {
-                        if(err.code !== 'EEXIST')
+        fs.access(removeLastElement(filePath.split("/")).join("/"), fs.constants.F_OK, err =>
+        {
+            if (err) {
+                fs.mkdir(removeLastElement(filePath.split("/")).join("/"), { recursive: true }, (err, path) =>
+                {
+                    if (err) {
+                        if (err.code !== 'EEXIST')
                             console.error(err)
                         else fs.createWriteStream(filePath).write(buffer, encoding)
                     }
@@ -288,39 +320,41 @@ export class StorageManager
         cb?: (err: NodeJS.ErrnoException | null, path?: string) => null)
     {
         return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void,
-            reject) => {
-                const promiseArgs = (first: any, ...args: any[]) => cb? cb(first, ...args): first
-                const preHandler = (err: NodeJS.ErrnoException | null, path?: string) => {
-                    if (!!err)
-                    {
-                        if (err.code !== 'EEXIST')
-                            return reject(promiseArgs(err, path))
-                        else return resolve(promiseArgs(err, path))
-                    }
-                    else return resolve(promiseArgs(null, path))
+            reject) =>
+        {
+            const promiseArgs = (first: any, ...args: any[]) => cb ? cb(first, ...args) : first
+            const preHandler = (err: NodeJS.ErrnoException | null, path?: string) =>
+            {
+                if (!!err) {
+                    if (err.code !== 'EEXIST')
+                        return reject(promiseArgs(err, path))
+                    else return resolve(promiseArgs(err, path))
                 }
+                else return resolve(promiseArgs(null, path))
+            }
 
-                StorageManager.checkExist(path)
-                    .then(async () => resolve(promiseArgs(null, path)),
-                        async () => {
-                            if (lt(process.versions.node, "10.12.0"))
-                            {
-                                return path.split("/")
-                                    .map((v, i, arr) => fs.mkdir(path.split(v)[0].concat(v),
-                                        options,
-                                        (err: NodeJS.ErrnoException | null) => {
-                                            if (arr.length-1 > i)
-                                                if(err && err.code !== 'EEXIST')
-                                                    console.error(err)
-                                                else return null
-                                            else preHandler(err)
-                                        }))
-                            }
-                            else return fs.mkdir(path,
-                                options,
-                                preHandler)
-                        })
-            })
+            StorageManager.checkExist(path)
+                .then(async () => resolve(promiseArgs(null, path)),
+                    async () =>
+                    {
+                        if (lt(process.versions.node, "10.12.0")) {
+                            return path.split("/")
+                                .map((v, i, arr) => fs.mkdir(path.split(v)[0].concat(v),
+                                    options,
+                                    (err: NodeJS.ErrnoException | null) =>
+                                    {
+                                        if (arr.length - 1 > i)
+                                            if (err && err.code !== 'EEXIST')
+                                                console.error(err)
+                                            else return null
+                                        else preHandler(err)
+                                    }))
+                        }
+                        else return fs.mkdir(path,
+                            options,
+                            preHandler)
+                    })
+        })
     }
 
     /**
@@ -331,20 +365,22 @@ export class StorageManager
      * @param cb Optional callback called when write operation is finished.
      * @returns A promise of the write operation.
      */
-    public static writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error| null) => void): Promise<boolean>
+    public static writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error | null) => void): Promise<boolean>
     {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) =>
+        {
             const parentPath = removeLastElement(filePath.split("/")).join("/")
-            StorageManager.mkdir(parentPath, {recursive: true}).then(
-                err => {
+            StorageManager.mkdir(parentPath, { recursive: true }).then(
+                err =>
+                {
                     const wstream = fs.createWriteStream(filePath)
 
                     wstream.on("error", cb ?? reject)
 
-                    for (let c = 0; c < data.byteLength; c += chunkSize)
-                    {
-                        const buffer = Buffer.from(data.slice(c, c+chunkSize))
-                        wstream.write(buffer, cb ?? (err => {
+                    for (let c = 0; c < data.byteLength; c += chunkSize) {
+                        const buffer = Buffer.from(data.slice(c, c + chunkSize))
+                        wstream.write(buffer, cb ?? (err =>
+                        {
                             if (err) {
                                 wstream.end()
                                 reject(err)
@@ -378,17 +414,19 @@ export class StorageManager
      * @param filePath path to the file in default storage.
      * @param cb optional callback to handle output and error. If not provided it resolve as a Promise
      */
-    public static getFileContents(filePath: string, cb?: (err: Error|null|undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
+    public static getFileContents(filePath: string, cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
     {
-        return new Promise((resolve: (data: Buffer[]) => any, reject) => {
+        return new Promise((resolve: (data: Buffer[]) => any, reject) =>
+        {
             let arr_buffer = new Array<Buffer>();
 
             const wstream = StorageManager.readFileStream(filePath, {
-                write: (chunk: Buffer, encoding: BufferEncoding, next: (err?: Error|null) => void) => {
+                write: (chunk: Buffer, encoding: BufferEncoding, next: (err?: Error | null) => void) =>
+                {
                     arr_buffer.push(chunk)
                     next()
                 }
-            }, cb ?? ((err) => err? reject(err) : resolve(arr_buffer)))
+            }, cb ?? ((err) => err ? reject(err) : resolve(arr_buffer)))
 
             // wstream.on('close', () => cb? cb(null, arr_buffer) : resolve(arr_buffer))
         })
@@ -400,19 +438,20 @@ export class StorageManager
      * @param opts options to setup the write stream.
      * @param cb optional callback to error handling (default `console.error` output stream).
      */
-    public static readFileStream(filePath: string, opts?: Stream.WritableOptions|Stream.Writable, cb?: (err?: Error| null) => void): Stream.Writable
+    public static readFileStream(filePath: string, opts?: Stream.WritableOptions | Stream.Writable, cb?: (err?: Error | null) => void): Stream.Writable
     {
         const f = fs.createReadStream(filePath)
-        const tstream = !!((opts as Stream.Writable)?.writable)? opts as Stream.Writable : new Stream.Writable(opts as Stream.WritableOptions)
+        const tstream = !!((opts as Stream.Writable)?.writable) ? opts as Stream.Writable : new Stream.Writable(opts as Stream.WritableOptions)
 
-        f.on('error', err => {
+        f.on('error', err =>
+        {
             tstream.end()
-            cb? cb(err) : console.error(err)
+            cb ? cb(err) : console.error(err)
         })
 
         f.on('close', () => tstream.end())
 
-        Stream.pipeline(f, tstream, cb ?? (err => !!err? console.error : null))
+        Stream.pipeline(f, tstream, cb ?? (err => !!err ? console.error : null))
         return tstream
     }
 
@@ -422,9 +461,9 @@ export class StorageManager
      * @param callback Optional callback called after delete operation is finished.
      * @returns A promise of the delete operation.
      */
-    public static deleteFromStorage(filePath: string, callback?: (err: NodeJS.ErrnoException | null) => void|any)
+    public static deleteFromStorage(filePath: string, callback?: (err: NodeJS.ErrnoException | null) => void | any)
     {
-        return new Promise ((resolve, reject) => fs.unlink(filePath, callback ?? (err => err? reject : resolve)))
+        return new Promise((resolve, reject) => fs.unlink(filePath, callback ?? (err => err ? reject : resolve)))
     }
 
     /**
@@ -449,21 +488,22 @@ export class StorageManager
         ifDir?: (err: NodeJS.ErrnoException | null, files: string[]) => void,
         encoding: BufferEncoding = "utf-8")
     {
-        fs.access(path as string, fs.constants.F_OK | fs.constants.R_OK, (err) => {
-            if (err) throw({ message: "no such file or directory!", path: path });
+        fs.access(path as string, fs.constants.F_OK | fs.constants.R_OK, (err) =>
+        {
+            if (err) throw ({ message: "no such file or directory!", path: path });
             else
-                fs.lstat(path as string, (err, stats) => {
-                    if (err)
-                    {
+                fs.lstat(path as string, (err, stats) =>
+                {
+                    if (err) {
                         console.log(err)
                         throw err
                     }
                     else if (stats.isFile())
-                        fs.readFile(path, {encoding}, (ifFile ?? (() => null)))
+                        fs.readFile(path, { encoding }, (ifFile ?? (() => null)))
                     else if (stats.isDirectory())
                         fs.readdir(path as string, (ifDir ?? (() => null)))
                     else
-                        throw({ message: `operation not supported! (${path})` })
+                        throw ({ message: `operation not supported! (${path})` })
                 });
         });
     }
