@@ -32,43 +32,98 @@ export class StorageManager
     /**
      * Wrapper to write in a given filename.
      * @param path Path to write file.
-     * @param value Plain string to insert into file.
+     * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async put(path: string, value: string | string[], charset: BufferEncoding = "utf-8")
+    public static async put(path: string, value: string | Buffer, charset?: BufferEncoding): Promise<void>
+    public static async put(path: string, values: (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+    public static async put(path: string, value: (string | Buffer) | (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+
+    public static async put(path: string, value: (string | Buffer) | (string | Buffer)[], charset: BufferEncoding = "utf-8")
     {
-        // return await StorageManager.writeStorage(path, Buffer.from(value, charset), charset)
         if (path.split("/").length > 1)
             await StorageManager.mkdir(Path.dirname(path), { recursive: true })
 
-        if (Array.isArray(value))
-        {
+        if (Array.isArray(value)) {
             const wstream = StorageManager.fileStream(path, "w")
-            return await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(value, charset, err => !!err ? reject(err) : resolve(true)))))
+            await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(value, charset, err => !!err ? reject(err) : resolve(true)))))
         } else {
-            return await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(value, charset, err => !!err ? reject(err) : resolve(true)))
+            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(value, charset, err => !!err ? reject(err) : resolve(true)))
         }
+    }
+
+    /**
+     * Wrapper to write in a given filename.
+     * @param path Path to write file.
+     * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
+     * @param charset Optional charset of data. Default is "utf-8".
+     */
+    public static async putStreamed(path: string, values: AsyncIterable<string | Buffer>, charset: BufferEncoding = "utf-8"): Promise<void>
+    {
+        if (path.split("/").length > 1)
+            await StorageManager.mkdir(Path.dirname(path), { recursive: true })
+
+        for await (const chunk of values)
+            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(chunk, charset, err => !!err ? reject(err) : resolve(true)))
     }
 
     /**
      * Wrapper to append file with data.
      * @param path Path to write file.
-     * @param value Plain string to append to file.
+     * @param value Plain string to append to file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static append(path: string, value: string, charset: BufferEncoding = "utf-8")
+    public static async append(path: string, value: string | Buffer, charset?: BufferEncoding): Promise<void>
+    public static async append(path: string, values: (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+    public static async append(path: string, values: (string | Buffer) | (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+
+    public static async append(path: string, value: (string | Buffer) | (string | Buffer)[], charset: BufferEncoding = "utf-8")
+    {
+        if (StorageManager.exists(path)) {
+            if (Array.isArray(value)) {
+                for (const inner of value) {
+                    await new Promise<void>((resolve, reject) =>
+                    {
+                        const chunk = Buffer.isBuffer(inner) ? inner : Buffer.from(inner, charset)
+                        fs.appendFile(path, chunk, err =>
+                        {
+                            if (!!err)
+                                reject(err)
+                            else resolve()
+                        })
+                    })
+                }
+            }
+            else {
+                await new Promise<void>((resolve, reject) =>
+                {
+                    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value, charset)
+                    fs.appendFile(path, chunk, err =>
+                    {
+                        if (!!err)
+                            reject(err)
+                        else resolve()
+                    })
+                })
+
+            }
+        }
+        else return StorageManager.put(path, value, charset)
+    }
+
+    /**
+     * Wrapper to append file with data.
+     * @param path Path to write file.
+     * @param values A.
+     * @param charset Optional charset of data. Default is "utf-8".
+     */
+    public static async appendStreamed(path: string, values: AsyncIterable<string | Buffer>, charset: BufferEncoding = "utf-8")
     {
         if (StorageManager.exists(path))
-            return new Promise<void>((resolve, reject) =>
-            {
-                fs.appendFile(path, Buffer.from(value, charset), err =>
-                {
-                    if (!!err)
-                        reject(err)
-                    else resolve()
-                })
-            })
-        else return StorageManager.put(path, value, charset)
+            for await (const chunk of values) {
+                await StorageManager.append(path, chunk, charset)
+            }
+        else return StorageManager.putStreamed(path, values, charset)
     }
 
     /**
@@ -130,6 +185,42 @@ export class StorageManager
     }
 
     /**
+     * Create a readable stream of file at given path.
+     * @param path Path to file
+     * @param options Optional options object to customize stream
+     *
+     * @returns Readable stream object of file
+     */
+    public static readStream(path: string, options?: Stream.ReadableOptions): Stream.Readable
+    {
+        return StorageManager.fileStream(path, 'r', options)
+    }
+
+    /**
+     * Create a writable stream of file at given path.
+     * @param path Path to file
+     * @param options Optional options object to customize stream
+     *
+     * @returns Writable stream object of file
+     */
+    public static writeStream(path: string, options?: Stream.WritableOptions): Stream.Writable
+    {
+        return StorageManager.fileStream(path, 'w', options)
+    }
+
+    /**
+     * Create a Duplex (both Readable and Writable) stream of file at given path.
+     * @param path Path to file
+     * @param options Optional options object to customize stream
+     *
+     * @returns Duplex stream object of file
+     */
+    public static duplexStream(path: string, options?: Stream.ReadableOptions): Stream.Duplex
+    {
+        return StorageManager.fileStream(path, 'rw', options)
+    }
+
+    /**
      * Create a stream of file at given path.
      * @param path Path to file
      * @param mode file stream mode, defaults 'rw'
@@ -172,11 +263,6 @@ export class StorageManager
             default:
                 throw new Error("Invalid file stream mode!")
         }
-    }
-
-    public createReadStreamStream(path: string)
-    {
-        return fs.createReadStream(path)
     }
 
     /**
@@ -265,10 +351,11 @@ export class StorageManager
 
     /**
      * Wrapper to check if a path already exists in filesystem.
-     * @deprecated
      * @param path Path to check avaiability.
      * @param cb Optional callback to run after async check.
      * @returns A promise of existance check.
+     *
+     * @deprecated @see {@link StorageManager.exists StorageManager.exists()}
      */
     public static checkExist(path: string, cb?: (exists?: (boolean | PromiseLike<boolean> | undefined)) => any): Promise<boolean>
     {
@@ -283,6 +370,11 @@ export class StorageManager
      * @param filePath Path of the file to write in filesystem (overrides if already exists).
      * @param f File data, as ArrayBuffer or UInt8Array.
      * @param encoding Optional encoding of data, default binary.
+     *
+     * @deprecated @see {@link StorageManager.put StorageManager.put()},
+     *  {@link StorageManager.putStreamed StorageManager.putStreamed()},
+     *  {@link StorageManager.append StorageManager.append()},
+     *  {@link StorageManager.appendStreamed StorageManager.appendStreamed()},
      */
     public static async writeStorage(filePath: string, f: ArrayBuffer | SharedArrayBuffer | Uint8Array, encoding: BufferEncoding = "binary"): Promise<void>
     {
@@ -364,6 +456,8 @@ export class StorageManager
      * @param chunkSize Chunk size of file.
      * @param cb Optional callback called when write operation is finished.
      * @returns A promise of the write operation.
+     *
+     * @deprecated @see {@link StorageManager.writeStream StorageManager.writeStream()}
      */
     public static writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error | null) => void): Promise<boolean>
     {
@@ -401,6 +495,8 @@ export class StorageManager
      * @deprecated Obsolete and unsafe code using `Stream.pipe(stream: Stream.Writable)`. Prefer `Stream.pipeline(...streams: Stream[, cb: err => void])` implementation at `StorageManager.readFileStream(...)`
      * @param filePath path to the file in default storage
      * @param out writable stream to output retrieved data
+     *
+     * @deprecated @see {@link StorageManager.readStream StorageManager.readStream()}
      */
     public static async readStorage(filePath: string, out: Stream.Writable): Promise<void>
     {
@@ -413,6 +509,8 @@ export class StorageManager
      * Assynchronously reads given file at default storage. Supports Callback syntax and Promise syntax.
      * @param filePath path to the file in default storage.
      * @param cb optional callback to handle output and error. If not provided it resolve as a Promise
+     *
+     * @deprecated @see {@link StorageManager.getAsBuffers StorageManager.getAsBuffers()}
      */
     public static getFileContents(filePath: string, cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
     {
@@ -434,6 +532,9 @@ export class StorageManager
 
     /**
      * Creates an Writable stream to transform/process chunk data from a file, piping'em, and returns the writed stream.
+     *
+     * @deprecated @see {@link StorageManager.readStream StorageManager.readStream()}
+     *
      * @param filePath path to the file in default storage.
      * @param opts options to setup the write stream.
      * @param cb optional callback to error handling (default `console.error` output stream).
