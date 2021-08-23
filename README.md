@@ -48,4 +48,11 @@ await StorageManager.delete("path/to/file")
 
 // Get stream object of a file
 let stream = StorageManager.fileStream("path/to/file")
+
+// Fetching directory list from path (no recursion)
+let dirs = StorageManager.listDirectory("path")
+
+// Fetching directory list from path (with recursion).
+// It returns a DirectoryList representing given path, which is iterable (for..of, spread operator) and contains strings for inner files and another DirectoryList instance for each inner directory. you can see directory name in DirectoryList with `name` property accessor.
+let dirs_deep = StorageManager.listDirectory("path", true)
 ```
