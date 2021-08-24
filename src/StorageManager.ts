@@ -24,11 +24,19 @@ type FileStreamType<T extends FileStreamMode> = T extends ReadMode ? Stream.Read
 type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode ? Stream.ReadableOptions : T extends WriteMode ? Stream.WritableOptions : T extends DuplexMode ? Stream.DuplexOptions : never
 
 
-type Not<T, U> = U extends T ? never : T
-
+/** Supported input types for underlying API (node/fs) */
 export type ValidInput = string | Buffer
+
+/** Supported input types for {@link StorageManager} filesystem wrapper */
 export type Input = ValidInput | object
 
+/**
+ * Wrapper to sanitize input of filesystem input wrappers.
+ * @param input Input data to sanitize.
+ * @returns a string or buffer representing the input data
+ *
+ * @since 1.2.0
+ */
 export function sanitizeInput(input: Buffer): Buffer
 export function sanitizeInput(input: string): string
 export function sanitizeInput(input: object): string
@@ -214,6 +222,7 @@ export class StorageManager
      * @param encoding file encoding to parse, default is "utf-8".
      * @param reviver A function that transforms the results. This function is called for each member of the object.
      * If a member contains nested objects, the nested objects are transformed before the parent object is.
+     * @since 1.2.0
      */
     public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?: (this: any, key: string, value: any) => any)
     {
