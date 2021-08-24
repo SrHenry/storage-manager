@@ -24,6 +24,30 @@ type FileStreamType<T extends FileStreamMode> = T extends ReadMode ? Stream.Read
 type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode ? Stream.ReadableOptions : T extends WriteMode ? Stream.WritableOptions : T extends DuplexMode ? Stream.DuplexOptions : never
 
 
+type Not<T, U> = U extends T ? never : T
+
+export type ValidInput = string | Buffer
+export type Input = ValidInput | object
+
+export function sanitizeInput(input: Buffer): Buffer
+export function sanitizeInput(input: string): string
+export function sanitizeInput(input: object): string
+export function sanitizeInput<T = unknown>(input: T[]): string
+export function sanitizeInput<T = unknown>(input: T): string
+
+export function sanitizeInput(input: any): ValidInput
+{
+    if (Buffer.isBuffer(input) || typeof input === "string")
+        return input
+    else if (Array.isArray(input) || typeof input === "object")
+        return JSON.stringify(input)
+    else if ('toString' in input)
+        return input.toString()
+    else
+        return `${input}`
+}
+
+
 /**
  * A filesystem wrapper class
  */
@@ -35,20 +59,20 @@ export class StorageManager
      * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async put(path: string, value: string | Buffer, charset?: BufferEncoding): Promise<void>
-    public static async put(path: string, values: (string | Buffer)[], charset?: BufferEncoding): Promise<void>
-    public static async put(path: string, value: (string | Buffer) | (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+    public static async put(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+    public static async put(path: string, values: Input[], charset?: BufferEncoding): Promise<void>
+    public static async put(path: string, value: Input | Input[], charset?: BufferEncoding): Promise<void>
 
-    public static async put(path: string, value: (string | Buffer) | (string | Buffer)[], charset: BufferEncoding = "utf-8")
+    public static async put(path: string, value: Input | Input[], charset: BufferEncoding = "utf-8")
     {
         if (path.split("/").length > 1)
             await StorageManager.mkdir(Path.dirname(path), { recursive: true })
 
         if (Array.isArray(value)) {
             const wstream = StorageManager.fileStream(path, "w")
-            await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(value, charset, err => !!err ? reject(err) : resolve(true)))))
+            await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(sanitizeInput(chunk), charset, err => !!err ? reject(err) : resolve(true)))))
         } else {
-            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(value, charset, err => !!err ? reject(err) : resolve(true)))
+            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(sanitizeInput(value), charset, err => !!err ? reject(err) : resolve(true)))
         }
     }
 
@@ -58,13 +82,13 @@ export class StorageManager
      * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async putStreamed(path: string, values: AsyncIterable<string | Buffer>, charset: BufferEncoding = "utf-8"): Promise<void>
+    public static async putStreamed(path: string, values: AsyncIterable<Input>, charset: BufferEncoding = "utf-8"): Promise<void>
     {
         if (path.split("/").length > 1)
             await StorageManager.mkdir(Path.dirname(path), { recursive: true })
 
         for await (const chunk of values)
-            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(chunk, charset, err => !!err ? reject(err) : resolve(true)))
+            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(sanitizeInput(chunk), charset, err => !!err ? reject(err) : resolve(true)))
     }
 
     /**
@@ -73,18 +97,18 @@ export class StorageManager
      * @param value Plain string to append to file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async append(path: string, value: string | Buffer, charset?: BufferEncoding): Promise<void>
-    public static async append(path: string, values: (string | Buffer)[], charset?: BufferEncoding): Promise<void>
-    public static async append(path: string, values: (string | Buffer) | (string | Buffer)[], charset?: BufferEncoding): Promise<void>
+    public static async append(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+    public static async append(path: string, values: Input[], charset?: BufferEncoding): Promise<void>
+    public static async append(path: string, values: Input | Input[], charset?: BufferEncoding): Promise<void>
 
-    public static async append(path: string, value: (string | Buffer) | (string | Buffer)[], charset: BufferEncoding = "utf-8")
+    public static async append(path: string, value: Input | Input[], charset: BufferEncoding = "utf-8")
     {
         if (StorageManager.exists(path)) {
             if (Array.isArray(value)) {
                 for (const inner of value) {
                     await new Promise<void>((resolve, reject) =>
                     {
-                        const chunk = Buffer.isBuffer(inner) ? inner : Buffer.from(inner, charset)
+                        const chunk = Buffer.isBuffer(inner) ? inner : Buffer.from(sanitizeInput(inner), charset)
                         fs.appendFile(path, chunk, err =>
                         {
                             if (!!err)
@@ -97,7 +121,7 @@ export class StorageManager
             else {
                 await new Promise<void>((resolve, reject) =>
                 {
-                    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value, charset)
+                    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(sanitizeInput(value), charset)
                     fs.appendFile(path, chunk, err =>
                     {
                         if (!!err)
@@ -117,7 +141,7 @@ export class StorageManager
      * @param values A.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async appendStreamed(path: string, values: AsyncIterable<string | Buffer>, charset: BufferEncoding = "utf-8")
+    public static async appendStreamed(path: string, values: AsyncIterable<Input>, charset: BufferEncoding = "utf-8")
     {
         if (StorageManager.exists(path))
             for await (const chunk of values) {
@@ -182,6 +206,18 @@ export class StorageManager
         {
             resolve(Buffer.concat(await StorageManager.getAsBuffers(path)))
         })
+    }
+
+    /**
+     * Wrapper to read file as JSON (load all data into a single buffer, intended for small binary files).
+     * @param path Path to read JSON file (be careful to do not load huge JSONs, as it will load entire JSON file in string before parsing).
+     * @param encoding file encoding to parse, default is "utf-8".
+     * @param reviver A function that transforms the results. This function is called for each member of the object.
+     * If a member contains nested objects, the nested objects are transformed before the parent object is.
+     */
+    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?: (this: any, key: string, value: any) => any)
+    {
+        return JSON.parse(await StorageManager.get(path, encoding), reviver)
     }
 
     /**
@@ -610,4 +646,4 @@ export class StorageManager
     }
 }
 
-export default StorageManager;
+export default StorageManager
