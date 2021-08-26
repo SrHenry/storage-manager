@@ -111,7 +111,7 @@ export class StorageManager
 
     public static async append(path: string, value: Input | Input[], charset: BufferEncoding = "utf-8")
     {
-        if (StorageManager.exists(path)) {
+        if (await StorageManager.exists(path)) {
             if (Array.isArray(value)) {
                 for (const inner of value) {
                     await new Promise<void>((resolve, reject) =>
@@ -151,7 +151,7 @@ export class StorageManager
      */
     public static async appendStreamed(path: string, values: AsyncIterable<Input>, charset: BufferEncoding = "utf-8")
     {
-        if (StorageManager.exists(path))
+        if (await StorageManager.exists(path))
             for await (const chunk of values) {
                 await StorageManager.append(path, chunk, charset)
             }
