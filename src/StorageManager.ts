@@ -29,8 +29,8 @@ type NodeJS_fsReadOptions = IgnoreUnionType<Parameters<typeof fs.createReadStrea
 type NodeJS_fsWriteOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
 /** fs Stream options supported in duplex mode */
 type NodeJS_fsDuplexOptions = {
-    readOptions?: IgnoreUnionType<NodeJS_fsReadOptions, string>
-    writeOptions?: IgnoreUnionType<NodeJS_fsWriteOptions, string>
+    readOptions?: IgnoreUnionType<NodeJS_fsReadOptions, string> | null
+    writeOptions?: IgnoreUnionType<NodeJS_fsWriteOptions, string> | null
 }
 
 /** Helper to infer fs stream options from file mode */
@@ -312,7 +312,7 @@ export class StorageManager
      *
      * @returns Readable stream object of file
      */
-    public static readStream(path: string, options?: Stream.ReadableOptions, fsOptions?: NodeJS_fsReadOptions): Stream.Readable
+    public static readStream(path: string, options?: Stream.ReadableOptions | null, fsOptions?: NodeJS_fsReadOptions | null): Stream.Readable
     {
         return StorageManager.fileStream(path, 'r', options, fsOptions)
     }
@@ -325,7 +325,7 @@ export class StorageManager
      *
      * @returns Writable stream object of file
      */
-    public static writeStream(path: string, options?: Stream.WritableOptions, fsOptions?: NodeJS_fsWriteOptions): Stream.Writable
+    public static writeStream(path: string, options?: Stream.WritableOptions | null, fsOptions?: NodeJS_fsWriteOptions | null): Stream.Writable
     {
         return StorageManager.fileStream(path, 'w', options, fsOptions)
     }
@@ -338,7 +338,7 @@ export class StorageManager
      *
      * @returns Duplex stream object of file
      */
-    public static duplexStream(path: string, options?: Stream.ReadableOptions, readOptions?: NodeJS_fsReadOptions, writeOptions?: NodeJS_fsWriteOptions): Stream.Duplex
+    public static duplexStream(path: string, options?: Stream.DuplexOptions | null, readOptions?: NodeJS_fsReadOptions | null, writeOptions?: NodeJS_fsWriteOptions | null): Stream.Duplex
     {
         return StorageManager.fileStream(path, 'rw', options, {
             readOptions,
