@@ -1,7 +1,12 @@
 import { TypeOfTag } from "typescript"
+import { dirname, basename, join } from "path"
+
 
 export type RecursiveType<T> = T | RecursiveType<T>[]
 
+export type DirectoryListJSON = {
+    [name: string]: Array<string | DirectoryListJSON>
+}
 
 export class DirectoryList
 {
@@ -22,26 +27,23 @@ export class DirectoryList
 
     public constructor(instance?: DirectoryList)
     public constructor(name: string, struct: (string | DirectoryList)[])
-    public constructor(arg1?: string|DirectoryList, struct: (string | DirectoryList)[] = [])
+    public constructor(arg1?: string | DirectoryList, struct: (string | DirectoryList)[] = [])
     {
-        if (typeof arg1 === 'string')
-        {
+        if (typeof arg1 === 'string') {
             this.name = arg1
             this.struct = struct
         }
-        else if (arg1 instanceof DirectoryList)
-        {
+        else if (arg1 instanceof DirectoryList) {
             this.name = arg1.name
             this.struct = arg1.struct
         }
-        else
-        {
-            this.name ="/"
+        else {
+            this.name = "/"
             this.struct = []
         }
     }
 
-    public * [Symbol.iterator](): Iterator<string | DirectoryList>
+    public *[Symbol.iterator](): Iterator<string | DirectoryList>
     {
         for (const item of this.struct)
             yield item
@@ -49,8 +51,7 @@ export class DirectoryList
 
     public [Symbol.toPrimitive](hint: TypeOfTag)
     {
-        switch (hint)
-        {
+        switch (hint) {
             case 'string':
                 return this.__toString()
         }
@@ -63,12 +64,10 @@ export class DirectoryList
 
         str = str.padStart(str.length + (deep * padUnit), traceChar)
 
-        for (const row of directoriesFirst)
-        {
-            if (row  instanceof DirectoryList)
+        for (const row of directoriesFirst) {
+            if (row instanceof DirectoryList)
                 str += row.__toString(deep + 1)
-            else
-            {
+            else {
                 let out = `File: ${row}\n`
                 str += out.padStart(out.length + ((deep + 1) * padUnit), traceChar)
             }
@@ -82,6 +81,17 @@ export class DirectoryList
         return `${this}`
     }
 
+    public toJSON(): DirectoryListJSON
+    {
+        return {
+            [basename(this.name)]: this.struct.map(item =>
+            {
+                if (item instanceof DirectoryList)
+                    return item.toJSON()
+                else return item
+            })
+        }
+    }
 }
 
 export default DirectoryList

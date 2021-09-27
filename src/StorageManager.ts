@@ -1,7 +1,7 @@
 import fs from "fs"
 import Stream from "stream"
 import Path from "path"
-import { removeLastElement } from "./utils"
+import { IgnoreUnionType, isAsyncIterable, isIterable, removeLastElement } from "./utils"
 import { lt } from "semver"
 import { DirectoryList } from "./DirectoryList"
 
@@ -23,12 +23,25 @@ type FileStreamType<T extends FileStreamMode> = T extends ReadMode ? Stream.Read
 /** Helper to infer StreamOptions type from file mode */
 type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode ? Stream.ReadableOptions : T extends WriteMode ? Stream.WritableOptions : T extends DuplexMode ? Stream.DuplexOptions : never
 
+/** fs Stream options supported in read mode */
+type NodeJS_fsReadOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
+/** fs Stream options supported in write mode */
+type NodeJS_fsWriteOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
+/** fs Stream options supported in duplex mode */
+type NodeJS_fsDuplexOptions = {
+    readOptions?: IgnoreUnionType<NodeJS_fsReadOptions, string>
+    writeOptions?: IgnoreUnionType<NodeJS_fsWriteOptions, string>
+}
+
+/** Helper to infer fs stream options from file mode */
+type NodeJS_fsOptionsType<T extends FileStreamMode> = T extends ReadMode ? NodeJS_fsReadOptions : T extends WriteMode ? NodeJS_fsWriteOptions : T extends DuplexMode ? NodeJS_fsDuplexOptions : never
+
 
 /** Supported input types for underlying API (node/fs) */
 export type ValidInput = string | Buffer
 
 /** Supported input types for {@link StorageManager} filesystem wrapper */
-export type Input = ValidInput | object
+export type Input = ValidInput | number | object
 
 /**
  * Wrapper to sanitize input of filesystem input wrappers.
@@ -64,81 +77,101 @@ export class StorageManager
     /**
      * Wrapper to write in a given filename.
      * @param path Path to write file.
-     * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
+     * @param value Plain string to insert into file, or Buffer instance, or serializable (as JSON) object.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async put(path: string, value: Input, charset?: BufferEncoding): Promise<void>
-    public static async put(path: string, values: Input[], charset?: BufferEncoding): Promise<void>
-    public static async put(path: string, value: Input | Input[], charset?: BufferEncoding): Promise<void>
-
-    public static async put(path: string, value: Input | Input[], charset: BufferEncoding = "utf-8")
+    public static async put(path: string, value: Input, charset: BufferEncoding = "utf-8")
     {
         if (path.split("/").length > 1)
             await StorageManager.mkdir(Path.dirname(path), { recursive: true })
 
-        if (Array.isArray(value)) {
-            const wstream = StorageManager.fileStream(path, "w")
-            await Promise.all(value.map(chunk => new Promise((resolve, reject) => wstream.write(sanitizeInput(chunk), charset, err => !!err ? reject(err) : resolve(true)))))
-        } else {
-            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(sanitizeInput(value), charset, err => !!err ? reject(err) : resolve(true)))
-        }
+        return new Promise<boolean>((resolve, reject) =>
+        {
+            const stream = StorageManager.fileStream(path, "w")
+
+            stream.write(sanitizeInput(value), charset, err => {
+                stream.end()
+
+                if (!!err)
+                    reject(err)
+                else
+                    resolve(true)
+            })
+        })
     }
 
     /**
      * Wrapper to write in a given filename.
      * @param path Path to write file.
-     * @param value Plain string to insert into file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
+     * @param values You can provide an async iterable object to write on demand or a synchronous one to group inputs before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async putStreamed(path: string, values: AsyncIterable<Input>, charset: BufferEncoding = "utf-8"): Promise<void>
+    public static async putStreamed(path: string, values: AsyncIterable<Input>, charset?: BufferEncoding): Promise<void>
+    public static async putStreamed(path: string, values: Iterable<Input>, charset?: BufferEncoding): Promise<void>
+    public static async putStreamed(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+
+    public static async putStreamed(path: string, values: AsyncIterable<Input> | Iterable<Input> | Input, charset: BufferEncoding = "utf-8"): Promise<void>
     {
         if (path.split("/").length > 1)
             await StorageManager.mkdir(Path.dirname(path), { recursive: true })
 
-        for await (const chunk of values)
-            await new Promise((resolve, reject) => StorageManager.fileStream(path, "w").write(sanitizeInput(chunk), charset, err => !!err ? reject(err) : resolve(true)))
+        const writeFactory = (path: string, encoding: BufferEncoding) =>
+        {
+            const ws = StorageManager.fileStream(path, "w")
+
+            return {
+                stream: ws,
+                write: (input: Input) => new Promise<boolean>((resolve, reject) =>
+                {
+                    ws.write(sanitizeInput(input), encoding, err => !!err ? reject(err) : resolve(true))
+                })
+            }
+        }
+
+        if (isIterable(values)) {
+            const { stream, write } = writeFactory(path, charset)
+
+            for (const chunk of values)
+                await write(chunk)
+
+            stream.end()
+        }
+        else if (isAsyncIterable(values)) {
+            const { stream, write } = writeFactory(path, charset)
+
+            for await (const chunk of values)
+                await write(chunk)
+
+            stream.end()
+        }
+        else {
+            const { stream, write } = writeFactory(path, charset)
+
+            await write(values)
+
+            stream.end()
+        }
     }
 
     /**
      * Wrapper to append file with data.
      * @param path Path to write file.
-     * @param value Plain string to append to file, or Buffer instance. You can provide an array if you prefer to chunk data before write.
+     * @param value Plain string to append to file, or Buffer instance, or serializable (as JSON) object.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async append(path: string, value: Input, charset?: BufferEncoding): Promise<void>
-    public static async append(path: string, values: Input[], charset?: BufferEncoding): Promise<void>
-    public static async append(path: string, values: Input | Input[], charset?: BufferEncoding): Promise<void>
-
-    public static async append(path: string, value: Input | Input[], charset: BufferEncoding = "utf-8")
+    public static async append(path: string, value: Input, charset: BufferEncoding = "utf-8")
     {
         if (await StorageManager.exists(path)) {
-            if (Array.isArray(value)) {
-                for (const inner of value) {
-                    await new Promise<void>((resolve, reject) =>
-                    {
-                        const chunk = Buffer.isBuffer(inner) ? inner : Buffer.from(sanitizeInput(inner), charset)
-                        fs.appendFile(path, chunk, err =>
-                        {
-                            if (!!err)
-                                reject(err)
-                            else resolve()
-                        })
-                    })
-                }
-            }
-            else {
-                await new Promise<void>((resolve, reject) =>
+            return new Promise<boolean>((resolve, reject) =>
+            {
+                const chunk = Buffer.isBuffer(value) ? value : Buffer.from(sanitizeInput(value), charset)
+                fs.appendFile(path, chunk, err =>
                 {
-                    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(sanitizeInput(value), charset)
-                    fs.appendFile(path, chunk, err =>
-                    {
-                        if (!!err)
-                            reject(err)
-                        else resolve()
-                    })
+                    if (!!err)
+                        reject(err)
+                    else resolve(true)
                 })
-
-            }
+            })
         }
         else return StorageManager.put(path, value, charset)
     }
@@ -146,15 +179,57 @@ export class StorageManager
     /**
      * Wrapper to append file with data.
      * @param path Path to write file.
-     * @param values A.
+     * @param values You can provide an async iterable object to write on demand or a synchronous one to group inputs before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async appendStreamed(path: string, values: AsyncIterable<Input>, charset: BufferEncoding = "utf-8")
+    public static async appendStreamed(path: string, values: AsyncIterable<Input>, charset?: BufferEncoding): Promise<void>
+    public static async appendStreamed(path: string, values: Iterable<Input>, charset?: BufferEncoding): Promise<void>
+    public static async appendStreamed(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+
+    public static async appendStreamed(path: string, values: AsyncIterable<Input> | Iterable<Input>, charset: BufferEncoding = "utf-8")
     {
-        if (await StorageManager.exists(path))
+        if (await StorageManager.exists(path)) {
             for await (const chunk of values) {
                 await StorageManager.append(path, chunk, charset)
             }
+
+            const writeFactory = (path: string, encoding: BufferEncoding) =>
+            {
+                const ws = StorageManager.fileStream(path, "w",null, { flags: "a" })
+
+                return {
+                    stream: ws,
+                    write: (input: Input) => new Promise<boolean>((resolve, reject) =>
+                    {
+                        ws.write(sanitizeInput(input), encoding, err => !!err ? reject(err) : resolve(true))
+                    })
+                }
+            }
+
+            if (isIterable(values)) {
+                const { stream, write } = writeFactory(path, charset)
+
+                for (const chunk of values)
+                    await write(chunk)
+
+                stream.end()
+            }
+            else if (isAsyncIterable(values)) {
+                const { stream, write } = writeFactory(path, charset)
+
+                for await (const chunk of values)
+                    await write(chunk)
+
+                stream.end()
+            }
+            else {
+                const { stream, write } = writeFactory(path, charset)
+
+                await write(values)
+
+                stream.end()
+            }
+        }
         else return StorageManager.putStreamed(path, values, charset)
     }
 
@@ -224,45 +299,51 @@ export class StorageManager
      * If a member contains nested objects, the nested objects are transformed before the parent object is.
      * @since 1.2.0
      */
-    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?: (this: any, key: string, value: any) => any)
+    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", [, ...args]: Parameters<typeof JSON.parse>)
     {
-        return JSON.parse(await StorageManager.get(path, encoding), reviver)
+        return JSON.parse(await StorageManager.get(path, encoding), ...args)
     }
 
     /**
      * Create a readable stream of file at given path.
      * @param path Path to file
      * @param options Optional options object to customize stream
+     * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Readable stream object of file
      */
-    public static readStream(path: string, options?: Stream.ReadableOptions): Stream.Readable
+    public static readStream(path: string, options?: Stream.ReadableOptions, fsOptions?: NodeJS_fsReadOptions): Stream.Readable
     {
-        return StorageManager.fileStream(path, 'r', options)
+        return StorageManager.fileStream(path, 'r', options, fsOptions)
     }
 
     /**
      * Create a writable stream of file at given path.
      * @param path Path to file
      * @param options Optional options object to customize stream
+     * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Writable stream object of file
      */
-    public static writeStream(path: string, options?: Stream.WritableOptions): Stream.Writable
+    public static writeStream(path: string, options?: Stream.WritableOptions, fsOptions?: NodeJS_fsWriteOptions): Stream.Writable
     {
-        return StorageManager.fileStream(path, 'w', options)
+        return StorageManager.fileStream(path, 'w', options, fsOptions)
     }
 
     /**
      * Create a Duplex (both Readable and Writable) stream of file at given path.
      * @param path Path to file
      * @param options Optional options object to customize stream
+     * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Duplex stream object of file
      */
-    public static duplexStream(path: string, options?: Stream.ReadableOptions): Stream.Duplex
+    public static duplexStream(path: string, options?: Stream.ReadableOptions, readOptions?: NodeJS_fsReadOptions, writeOptions?: NodeJS_fsWriteOptions): Stream.Duplex
     {
-        return StorageManager.fileStream(path, 'rw', options)
+        return StorageManager.fileStream(path, 'rw', options, {
+            readOptions,
+            writeOptions,
+        })
     }
 
     /**
@@ -274,23 +355,38 @@ export class StorageManager
      * @returns Stream object of file
      */
     public static fileStream(path: string): Stream.Duplex
-    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode>): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
 
-    public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> = {}): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> | null = {}, fsOptions: NodeJS_fsOptionsType<typeof mode> | null = {}): FileStreamType<typeof mode>
     {
+        options = options ?? {}
+        fsOptions = fsOptions ?? {}
+
         switch (mode ?? "rw") {
             case "r":
-                return fs.createReadStream(path, options)
+                return fs.createReadStream(path, {
+                    ...options,
+                    ...fsOptions,
+                })
                 break
             case "w":
-                return fs.createWriteStream(path, options)
+                return fs.createWriteStream(path, {
+                    ...options,
+                    ...fsOptions,
+                })
                 break
             case "rw":
                 const [r, w] = [
-                    fs.createReadStream(path, options),
-                    fs.createWriteStream(path, options)
+                    fs.createReadStream(path, {
+                        ...options,
+                        ...(fsOptions as NodeJS_fsDuplexOptions)?.readOptions,
+                    }),
+                    fs.createWriteStream(path, {
+                        ...options,
+                        ...(fsOptions as NodeJS_fsDuplexOptions)?.writeOptions,
+                    })
                 ]
 
                 const streamOptions: FileStreamOptionsType<typeof mode> = {
