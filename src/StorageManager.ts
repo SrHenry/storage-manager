@@ -416,6 +416,17 @@ export class StorageManager
         return new Promise(resolve => fs.access(path, fs.constants.F_OK, err => resolve(!err)))
     }
 
+    /**
+     * Wrapper to check if a path does not exists in filesystem. Is the oposite of {@link StorageManager.exists exists()} method
+     * @param path Path to check avaiability.
+     * @returns A promise of non-existance check.
+     */
+    public static async doesntExist(path: string): Promise<boolean>
+    {
+        return !(await StorageManager.exists(path))
+    }
+
+    /** Checks if given path corresponds to a file */
     public static isFile(path: string): Promise<boolean>
     {
         return new Promise(async (resolve, reject) =>
@@ -431,6 +442,7 @@ export class StorageManager
         })
     }
 
+    /** Checks if given path corresponds to a directory */
     public static isDirectory(path: string): Promise<boolean>
     {
         return new Promise(async (resolve, reject) =>
@@ -458,7 +470,9 @@ export class StorageManager
     {
         return new Promise(async (_return, _throw) =>
         {
-            if (await StorageManager.isFile(path))
+            if (await StorageManager.doesntExist(path))
+                _return([])
+            else if (await StorageManager.isFile(path))
                 _return([path])
             else if (!!recursive) {
                 fs.readdir(path as string, async (err, list) =>
