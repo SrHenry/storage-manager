@@ -64,20 +64,23 @@ export class DirectoryList
     private __toString(deep: number = 0, traceChar = " ", padUnit = 4)
     {
         const directoriesFirst = this.struct.sort((a, b) => a instanceof DirectoryList ? (b instanceof DirectoryList ? 0 : -1) : (b instanceof DirectoryList ? 1 : 0))
-        let str = `DirectoryList: ${this.name} {\n`
+        let str = `DirectoryList: ${deep > 0 ? basename(this.name) : this.name} {\n`
 
         str = str.padStart(str.length + (deep * padUnit), traceChar)
 
         for (const row of directoriesFirst) {
             if (row instanceof DirectoryList)
-                str += row.__toString(deep + 1)
+                str += row.__toString(deep + 1, traceChar, padUnit)
             else {
                 let out = `File: ${row}\n`
                 str += out.padStart(out.length + ((deep + 1) * padUnit), traceChar)
             }
         }
 
-        return str.concat("}\n".padStart(2 + (deep * 2)))
+        let tail = "}\n"
+        tail = tail.padStart(tail.length + (deep * padUnit), traceChar)
+
+        return str.concat(tail)
     }
 
     public toString()
@@ -86,12 +89,12 @@ export class DirectoryList
     }
 
     /** Get JSON representation of inner directory structure on filesystem */
-    public get(): DirectoryListJSONContent
+    public get(fullname = false): DirectoryListJSONContent
     {
         return this.struct.map(item =>
         {
             if (item instanceof DirectoryList)
-                return item.toJSON()
+                return item.toJSON(fullname, false)
             else return item
         })
     }
@@ -100,10 +103,10 @@ export class DirectoryList
      * Prefered method to serialize instance
      * @since 1.3.0
      */
-    public toJSON(): DirectoryListJSON
+    public toJSON(fullname = false, root = true): DirectoryListJSON
     {
         return {
-            [basename(this.name)]: this.get()
+            [(root || fullname) ? this.name : basename(this.name)]: this.get(fullname)
         }
     }
 }
