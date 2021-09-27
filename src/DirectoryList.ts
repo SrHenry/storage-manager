@@ -4,14 +4,18 @@ import { dirname, basename, join } from "path"
 
 export type RecursiveType<T> = T | RecursiveType<T>[]
 
+export type DirectoryListJSONContent = Array<string | DirectoryListJSON>
 export type DirectoryListJSON = {
     [name: string]: Array<string | DirectoryListJSON>
 }
 
+/**
+ * Wrapper for directory structure in filesystem. May be recursive
+ */
 export class DirectoryList
 {
     // private struct: RecursiveType<string>[]
-    private struct: (string | DirectoryList)[]
+    private struct: Array<string | DirectoryList>
 
     private _name: string
 
@@ -26,8 +30,8 @@ export class DirectoryList
     }
 
     public constructor(instance?: DirectoryList)
-    public constructor(name: string, struct: (string | DirectoryList)[])
-    public constructor(arg1?: string | DirectoryList, struct: (string | DirectoryList)[] = [])
+    public constructor(name: string, struct: Array<string | DirectoryList>)
+    public constructor(arg1?: string | DirectoryList, struct: Array<string | DirectoryList> = [])
     {
         if (typeof arg1 === 'string') {
             this.name = arg1
@@ -81,15 +85,25 @@ export class DirectoryList
         return `${this}`
     }
 
+    /** Get JSON representation of inner directory structure on filesystem */
+    public get(): DirectoryListJSONContent
+    {
+        return this.struct.map(item =>
+        {
+            if (item instanceof DirectoryList)
+                return item.toJSON()
+            else return item
+        })
+    }
+
+    /**
+     * Prefered method to serialize instance
+     * @since 1.3.0
+     */
     public toJSON(): DirectoryListJSON
     {
         return {
-            [basename(this.name)]: this.struct.map(item =>
-            {
-                if (item instanceof DirectoryList)
-                    return item.toJSON()
-                else return item
-            })
+            [basename(this.name)]: this.get()
         }
     }
 }
