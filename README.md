@@ -1,7 +1,16 @@
 # Storage Manager
 
-Storage Manager module to wrap Node.js filesystem access with ease. This module is Promise-ready, all methods return promises or stream objects. Both Javascript (CommonJS) and Typescript (ES6+) are supported.
+> Storage Manager module to wrap Node.js filesystem access with ease. This module is Promise-ready, all methods return promises or stream objects. Both Javascript (CommonJS) and Typescript (ES6+) are supported.
 
+<br>
+<div align="center">
+
+![npm (scoped)](https://img.shields.io/npm/v/@srhenry/storage-manager)
+![npm](https://img.shields.io/npm/dt/@srhenry/storage-manager)
+![NPM](https://img.shields.io/npm/l/@srhenry/storage-manager)
+</div>
+
+<br>
 
 ## Installing
 
@@ -60,4 +69,29 @@ let dirs = await StorageManager.listDirectory("path")
     You can see directory name in DirectoryList with `name` property accessor.
 */
 let dirs_deep = await StorageManager.listDirectory("path", true)
+
+// copying files or directories:
+await StorageManager.copy("path/to/file", "new/path")
+// copying files or directories (w/ renaming):
+await StorageManager.copy("path/to/file", "new/path", "new_name")
+
+// renaming files or directories
+await StorageManager.rename("path/to/file", "new_name")
+
+// moving files or directories
+await StorageManager.move("path/to/file", "new/path")
+// moving files or directories (w/ renaming)
+await StorageManager.move("path/to/file", "new/path", "new_name")
+
+// fetching file or directory metadata
+// @see https://nodejs.org/api/fs.html#fs_class_fs_stats for further documentation on those metadata
+const metadata = await Storage.stats("path/to/file")
+
+let isFile = metadata.isFile() // Returns true if is a file
+let isDirectory = metadata.isDirectory() // Returns true if is a directory
+
+// shortand for check if given path is a file
+isFile = await StorageManager.isFile("path/to/file")
+// shortand for check if given path is a directory
+isDirectory = await StorageManager.isDirectory("path/to/file")
 ```

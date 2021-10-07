@@ -1,9 +1,11 @@
 import fs from "fs"
+import os from "os"
 import Stream from "stream"
-import Path from "path"
-import { IgnoreUnionType, isAsyncIterable, isIterable, removeLastElement } from "./utils"
+import Path, { join, basename, dirname } from "path"
+import { IgnoreUnionType, isAsyncIterable, isIterable, removeLastElement, LogicGates } from "./utils"
 import { lt } from "semver"
 import { DirectoryList } from "./DirectoryList"
+
 
 
 /** Read mode */
@@ -74,6 +76,10 @@ export function sanitizeInput(input: any): ValidInput
  */
 export class StorageManager
 {
+    public static readonly constants = fs.constants
+
+    public static readonly path = Path
+
     /**
      * Wrapper to write in a given filename.
      * @param path Path to write file.
@@ -83,13 +89,14 @@ export class StorageManager
     public static async put(path: string, value: Input, charset: BufferEncoding = "utf-8")
     {
         if (path.split("/").length > 1)
-            await StorageManager.mkdir(Path.dirname(path), { recursive: true })
+            await StorageManager.mkdir(dirname(path), { recursive: true })
 
         return new Promise<boolean>((resolve, reject) =>
         {
             const stream = StorageManager.fileStream(path, "w")
 
-            stream.write(sanitizeInput(value), charset, err => {
+            stream.write(sanitizeInput(value), charset, err =>
+            {
                 stream.end()
 
                 if (!!err)
@@ -113,7 +120,7 @@ export class StorageManager
     public static async putStreamed(path: string, values: AsyncIterable<Input> | Iterable<Input> | Input, charset: BufferEncoding = "utf-8"): Promise<void>
     {
         if (path.split("/").length > 1)
-            await StorageManager.mkdir(Path.dirname(path), { recursive: true })
+            await StorageManager.mkdir(dirname(path), { recursive: true })
 
         const writeFactory = (path: string, encoding: BufferEncoding) =>
         {
@@ -195,7 +202,7 @@ export class StorageManager
 
             const writeFactory = (path: string, encoding: BufferEncoding) =>
             {
-                const ws = StorageManager.fileStream(path, "w",null, { flags: "a" })
+                const ws = StorageManager.fileStream(path, "w", null, { flags: "a" })
 
                 return {
                     stream: ws,
@@ -305,9 +312,100 @@ export class StorageManager
     }
 
     /**
+     * Wrapper to rename a file, or directory.
+     * @param path Current path.
+     * @param renameTo New name to file or directory.
+     *
+     * @since 1.4.0
+     */
+    public static async rename(path: string, renameTo: string): Promise<void>
+    {
+        return new Promise((resolve, reject) =>
+        {
+            let dest = dirname(renameTo)
+            if (dest === ".")
+                dest = join(dirname(path))
+
+            const to = join(dest, basename(renameTo))
+
+            fs.rename(path, to, err =>
+            {
+                if (err)
+                    reject(err)
+                else
+                    resolve()
+            })
+        })
+    }
+
+    /**
+     * Wrapper to move a file, or directory.
+     * @param from Current path.
+     * @param to New path.
+     * @param as Optional renaming.
+     *
+     * @since 1.4.0
+     */
+    public static async move(from: string, to: string, as?: string)
+    {
+        return StorageManager.rename(from, join(to, as ?? basename(from)))
+    }
+
+    /**
+     * Wrapper to copy a file or a directory to a given directory.
+     * @param from Path to a file or directory.
+     * @param to Path of new directory to copy (input will be put inside this path).
+     * @param as Optional new name of file or directory.
+     *
+     * @since 1.4.0
+     */
+    public static async copy(from: string, to: string, as?: string): Promise<void>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            const stats = await StorageManager.stats(from)
+                .catch(err => resolve(err))
+
+            if (stats) {
+                const dest = join(to, as ?? basename(from))
+
+                if (stats.isFile()) {
+                    await StorageManager.mkdir(to, { recursive: true })
+
+                    fs.copyFile(from, dest, err =>
+                    {
+                        if (err)
+                            reject(err)
+                        else
+                            resolve()
+                    })
+                }
+                else if (stats.isDirectory()) {
+                    await StorageManager.mkdir(dest, { recursive: true })
+
+                    const dir = await StorageManager.listDirectory(from, true)
+                    const files = Array.from(dir)
+                        .filter((file): file is string => typeof file === "string")
+
+                    const innerDirs = Array.from(dir)
+                        .filter((file): file is DirectoryList => file instanceof DirectoryList)
+
+                    for (const file of files)
+                        await StorageManager.copy(join(from, file), dest)
+
+                    for (const { name } of innerDirs)
+                        await StorageManager.copy(join(name), dest)
+
+                    resolve()
+                }
+            }
+        })
+    }
+
+    /**
      * Create a readable stream of file at given path.
      * @param path Path to file
-     * @param options Optional options object to customize stream
+     * @param options Optional {@link Stream.ReadableOptions *node:stream.ReadableOptions*} object to customize stream
      * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Readable stream object of file
@@ -320,7 +418,7 @@ export class StorageManager
     /**
      * Create a writable stream of file at given path.
      * @param path Path to file
-     * @param options Optional options object to customize stream
+     * @param options Optional {@link Stream.WritableOptions *node:stream.WritableOptions*} object to customize stream
      * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Writable stream object of file
@@ -333,7 +431,7 @@ export class StorageManager
     /**
      * Create a Duplex (both Readable and Writable) stream of file at given path.
      * @param path Path to file
-     * @param options Optional options object to customize stream
+     * @param options Optional {@link Stream.DuplexOptions *node:stream.DuplexOptions*} object to customize stream
      * @param fsOptions Optional settings for underlying fs stream.
      *
      * @returns Duplex stream object of file
@@ -350,14 +448,15 @@ export class StorageManager
      * Create a stream of file at given path.
      * @param path Path to file
      * @param mode file stream mode, defaults 'rw'
-     * @param options Optional StreamOptions object to customize stream
+     * @param options Optional {@link Stream.StreamOptions *node:stream.StreamOptions*} object to customize stream
+     * @param fsOptions Optional *node:fs.StreamOptions* object to customize stream
      *
      * @returns Stream object of file
      */
     public static fileStream(path: string): Stream.Duplex
-    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode>| null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
 
     public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> | null = {}, fsOptions: NodeJS_fsOptionsType<typeof mode> | null = {}): FileStreamType<typeof mode>
     {
@@ -409,25 +508,137 @@ export class StorageManager
     /**
      * Wrapper to check if a path already exists in filesystem.
      * @param path Path to check avaiability.
+     *
      * @returns A promise of existance check.
      */
-    public static exists(path: string): Promise<boolean>
+    public static async exists(path: string): Promise<boolean>
+
+    /**
+     * Wrapper to check if a path already exists in filesystem.
+     * @param path Path to check avaiability.
+     * @param mode Optional access mode flags to check avaiability (see: {@link fs.constants NodeJS.fs.constants}).
+     *
+     * @returns A promise of existance check.
+     */
+    public static async exists(path: string, mode: number): Promise<boolean>
+
+    public static async exists(path1: string, path2: string): Promise<boolean>
+    public static async exists(path1: string, path2: string, mode: number): Promise<boolean>
+    public static async exists(path1: string, path2: string, path3: string): Promise<boolean>
+    public static async exists(path1: string, path2: string, path3: string, mode: number): Promise<boolean>
+    public static async exists(path1: string, path2: string, path3: string, path4: string): Promise<boolean>
+    public static async exists(path1: string, path2: string, path3: string, path4: string, mode: number): Promise<boolean>
+
+    /**
+     * Wrapper to check if a path already exists in filesystem.
+     * @param paths paths to check in a row
+     *
+     * @returns A promise of existance check.
+     */
+    public static async exists(...paths: string[]): Promise<boolean>
+
+    public static async exists(...args: (string | number)[]): Promise<boolean>
+
+    public static async exists(...args: (string | number)[]): Promise<boolean>
     {
-        return new Promise(resolve => fs.access(path, fs.constants.F_OK, err => resolve(!err)))
+        let last = args.pop()
+        let mode: number
+        let paths = Array.from(args).filter((arg): arg is string => typeof arg === "string")
+
+        if (typeof last === "number")
+            mode = last
+        else
+            mode = fs.constants.F_OK
+
+        if (typeof last === "string")
+            paths.push(last)
+
+        return LogicGates.AND(...await Promise.all(paths.map(path => StorageManager._exists(path, mode))))
     }
 
     /**
-     * Wrapper to check if a path does not exists in filesystem. Is the oposite of {@link StorageManager.exists exists()} method
+     * Wrapper to check if a path already exists in filesystem.
      * @param path Path to check avaiability.
+     *
+     * @returns A promise of existance check.
+     */
+    private static async _exists(path: string, mode: number = fs.constants.F_OK): Promise<boolean>
+    {
+        return new Promise(resolve => fs.access(path, mode, err => resolve(!err)))
+    }
+
+    /**
+     * Wrapper to retrieve stats of a given path
+     * @param path Path to retrieve stats.
+     * @since 1.4.0
+     */
+    public static async stats(path: string): Promise<fs.Stats>
+    {
+        return new Promise(async (resolve, reject) =>
+        {
+            if (await StorageManager.exists(path)) {
+                fs.lstat(path, (err, stats) =>
+                {
+                    if (err)
+                        reject(err)
+                    else
+                        resolve(stats)
+                })
+            }
+            else {
+                const err: NodeJS.ErrnoException = { ...new Error }
+                err.code = 'ENOENT'
+                err.errno = os.constants.errno.ENOENT
+                err.path = path
+
+                Error.captureStackTrace(err)
+
+
+                reject(err)
+            }
+        })
+    }
+
+    /**
+     * Wrapper to check if a path does not exist in filesystem. Is the oposite of {@link StorageManager.exists exists()} method.
+     * @param path Path to check unavaiability.
      * @returns A promise of non-existance check.
      */
     public static async doesntExist(path: string): Promise<boolean>
+
+    /**
+     * Wrapper to check if a path does not exist in filesystem. Is the oposite of {@link StorageManager.exists exists()} method.
+     * @param path Path to check unavaiability.
+     * @param mode Optional access mode flags to check unavaiability (see: {@link fs.constants NodeJS.fs.constants}).
+     *
+     * @returns A promise of non-existance check.
+     */
+    public static async doesntExist(path: string, mode: number): Promise<boolean>
+
+    public static async doesntExist(path1: string, path2: string): Promise<boolean>
+    public static async doesntExist(path1: string, path2: string, mode: number): Promise<boolean>
+    public static async doesntExist(path1: string, path2: string, path3: string): Promise<boolean>
+    public static async doesntExist(path1: string, path2: string, path3: string, mode: number): Promise<boolean>
+    public static async doesntExist(path1: string, path2: string, path3: string, path4: string): Promise<boolean>
+    public static async doesntExist(path1: string, path2: string, path3: string, path4: string, mode: number): Promise<boolean>
+
+    /**
+    * Wrapper to check if a path does not exist in filesystem. Is the oposite of {@link StorageManager.exists exists()} method.
+    * @param paths Paths to check in a row.
+    *
+    * @returns A promise of non-existance check.
+    */
+    public static async doesntExist(...paths: string[]): Promise<boolean>
+
+    public static async doesntExist(...args: (string | number)[]): Promise<boolean>
+
+    public static async doesntExist(...args: (string | number)[]): Promise<boolean>
     {
-        return !(await StorageManager.exists(path))
+        return !(await StorageManager.exists(...args))
     }
 
     /** Checks if given path corresponds to a file */
-    public static isFile(path: string): Promise<boolean>
+    public static async isFile(path: string): Promise<boolean>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -443,7 +654,7 @@ export class StorageManager
     }
 
     /** Checks if given path corresponds to a directory */
-    public static isDirectory(path: string): Promise<boolean>
+    public static async isDirectory(path: string): Promise<boolean>
     {
         return new Promise(async (resolve, reject) =>
         {
@@ -463,10 +674,10 @@ export class StorageManager
      * @param path Path to list
      * @param recursive Optional flag to list recursively
      */
-    public static listDirectory(path: string): Promise<string[]>
-    public static listDirectory(path: string, recursive: false): Promise<string[]>
-    public static listDirectory(path: string, recursive: true): Promise<DirectoryList>
-    public static listDirectory(path: string, recursive = false): Promise<string[] | DirectoryList>
+    public static async listDirectory(path: string): Promise<string[]>
+    public static async listDirectory(path: string, recursive: false): Promise<string[]>
+    public static async listDirectory(path: string, recursive: true): Promise<DirectoryList>
+    public static async listDirectory(path: string, recursive = false): Promise<string[] | DirectoryList>
     {
         return new Promise(async (_return, _throw) =>
         {
@@ -480,14 +691,24 @@ export class StorageManager
                     if (!!err)
                         _throw(err)
                     else {
-                        const directories = await Promise.all(list.map(node => Path.join(path, node)).map(StorageManager.isDirectory))
-                        const files = list.filter((_, i) => !directories[i])
+                        type PathTuple = [path: string, fullpath: string]
+                        type StatsTuple = [path: string, stats: fs.Stats]
 
-                        const innerDirectories = list.filter((_, i) => directories[i])
+                        const statsPromises = list
+                            .map<PathTuple>(node => [node, join(path, node)])
+                            .map<Promise<StatsTuple>>(async ([node, _]) => [node, await StorageManager.stats(_)])
+                        const stats = await Promise.all(statsPromises)
 
-                        const dirlist = await Promise.all(innerDirectories.map(file => StorageManager.listDirectory(Path.join(path, file), true)))
+                        const directories = stats.filter(([, stats]) => stats.isDirectory())
+                            .map<PathTuple>(([_]) => [_, join(path, _)])
 
-                        _return(new DirectoryList(path, [...dirlist, ...files]))
+                        const files = stats.filter(([, stats]) => stats.isFile())
+                            .map<PathTuple>(([_]) => [_, join(path, _)])
+
+                        const chainPromise = directories.map(([, fullpath]) => StorageManager.listDirectory(fullpath, true))
+                        const chain = await Promise.all(chainPromise)
+
+                        _return(new DirectoryList(path, [...chain, ...files.map(([_]) => _)], await StorageManager.stats(path)))
                     }
                 })
             }
@@ -512,7 +733,7 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.exists StorageManager.exists()}
      */
-    public static checkExist(path: string, cb?: (exists?: (boolean | PromiseLike<boolean> | undefined)) => any): Promise<boolean>
+    public static async checkExist(path: string, cb?: (exists?: (boolean | PromiseLike<boolean> | undefined)) => any): Promise<boolean>
     {
         return new Promise((resolve, reject) => fs.access(path, fs.constants.F_OK, err =>
         {
@@ -562,8 +783,8 @@ export class StorageManager
      * @param cb Optional callback for mkdir async operation.
      * @returns A promise of mkdir operation.
      */
-    public static mkdir(path: string,
-        options: fs.MakeDirectoryOptions = { recursive: false },
+    public static async mkdir(path: string,
+        options: fs.MakeDirectoryOptions = { recursive: true },
         cb?: (err: NodeJS.ErrnoException | null, path?: string) => null)
     {
         return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void,
@@ -614,7 +835,7 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.writeStream StorageManager.writeStream()}
      */
-    public static writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error | null) => void): Promise<boolean>
+    public static async writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error | null) => void): Promise<boolean>
     {
         return new Promise((resolve, reject) =>
         {
@@ -667,7 +888,7 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.getAsBuffers StorageManager.getAsBuffers()}
      */
-    public static getFileContents(filePath: string, cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
+    public static async getFileContents(filePath: string, cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
     {
         return new Promise((resolve: (data: Buffer[]) => any, reject) =>
         {
@@ -717,9 +938,36 @@ export class StorageManager
      * @param callback Optional callback called after delete operation is finished.
      * @returns A promise of the delete operation.
      */
-    public static deleteFromStorage(filePath: string, callback?: (err: NodeJS.ErrnoException | null) => void | any)
+    public static async deleteFromStorage(filePath: string, callback?: (err: NodeJS.ErrnoException | null) => void | any): Promise<void>
     {
-        return new Promise((resolve, reject) => fs.unlink(filePath, callback ?? (err => err ? reject : resolve)))
+        return new Promise(async (resolve, reject) =>
+        {
+            const metadata = await StorageManager.stats(filePath)
+            if (metadata.isFile() || metadata.isSymbolicLink())
+                fs.unlink(filePath, callback ?? (err => err ? reject(err) : resolve()))
+            else if (metadata.isDirectory()) {
+                if (lt(process.versions.node, "12.10.0 ")) {
+                    const dir = await StorageManager.listDirectory(filePath, true)
+
+                    const files = Array.from(dir)
+                        .filter((file): file is string => typeof file === "string")
+
+                    const innerDirs = Array.from(dir)
+                        .filter((file): file is DirectoryList => file instanceof DirectoryList)
+
+
+                    for (const file of files)
+                        await StorageManager.deleteFromStorage(file)
+                    for (const { name } of innerDirs)
+                        await StorageManager.deleteFromStorage(name)
+
+                    fs.rmdir(filePath, callback ?? (err => err ? reject(err) : resolve()))
+                } else {
+                    fs.rmdir(filePath, { recursive: true }, callback ?? (err => err ? reject(err) : resolve()))
+                }
+            }
+
+        })
     }
 
     /**
@@ -727,7 +975,7 @@ export class StorageManager
      * @param filePath A path to unlink or delete from filesystem.
      * @returns A promise of the delete operation.
      */
-    public static delete(path: string)
+    public static async delete(path: string)
     {
         return StorageManager.deleteFromStorage(path)
     }

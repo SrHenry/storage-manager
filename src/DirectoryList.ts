@@ -1,5 +1,6 @@
 import { TypeOfTag } from "typescript"
 import { dirname, basename, join } from "path"
+import { Stats } from "fs"
 
 
 export type RecursiveType<T> = T | RecursiveType<T>[]
@@ -18,28 +19,41 @@ export class DirectoryList
     private struct: Array<string | DirectoryList>
 
     private _name: string
+    private _stats?: Stats
+
 
     public get name()
     {
         return this._name
     }
-
     public set name(name: string)
     {
         this._name = name
     }
 
+    /**
+     * Stats info of directory.
+     * @see {@link Stats NodeJS.fs.Stats}
+     */
+    public get stats()
+    {
+        return this._stats
+    }
+
     public constructor(instance?: DirectoryList)
     public constructor(name: string, struct: Array<string | DirectoryList>)
-    public constructor(arg1?: string | DirectoryList, struct: Array<string | DirectoryList> = [])
+    public constructor(name: string, struct: Array<string | DirectoryList>, stats: Stats)
+    public constructor(arg1?: string | DirectoryList, struct: Array<string | DirectoryList> = [], stats?: Stats)
     {
         if (typeof arg1 === 'string') {
             this.name = arg1
             this.struct = struct
+            this._stats = stats
         }
         else if (arg1 instanceof DirectoryList) {
             this.name = arg1.name
             this.struct = arg1.struct
+            this._stats = arg1.stats
         }
         else {
             this.name = "/"
@@ -110,5 +124,8 @@ export class DirectoryList
         }
     }
 }
+
+/** Alias for {@link DirectoryList} */
+export const Directory = DirectoryList
 
 export default DirectoryList
