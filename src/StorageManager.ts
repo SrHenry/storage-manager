@@ -100,17 +100,22 @@ export class StorageManager
 
         return new Promise<boolean>((resolve, reject) =>
         {
-            const stream = StorageManager.fileStream(path, "w")
+            try {
+                const stream = StorageManager.fileStream(path, "w")
 
-            stream.write(sanitizeInput(value), charset, err =>
-            {
-                stream.end()
+                stream.write(sanitizeInput(value), charset, err =>
+                {
+                    stream.end()
 
-                if (!!err)
-                    reject(err)
-                else
-                    resolve(true)
-            })
+                    if (!!err)
+                        reject(err)
+                    else
+                        resolve(true)
+                })
+            }
+            catch (err: unknown) {
+                reject(err)
+            }
         })
     }
 
@@ -301,7 +306,12 @@ export class StorageManager
     {
         return new Promise<Buffer>(async (resolve, reject) =>
         {
-            resolve(Buffer.concat(await StorageManager.getAsBuffers(path)))
+            try {
+                resolve(Buffer.concat(await StorageManager.getAsBuffers(path)))
+            }
+            catch (err: unknown) {
+                reject(err)
+            }
         })
     }
 
@@ -313,9 +323,16 @@ export class StorageManager
      * If a member contains nested objects, the nested objects are transformed before the parent object is.
      * @since 1.2.0
      */
-    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?:(this: any, key: string, value: any) => any)
+    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?: (this: any, key: string, value: any) => any)
     {
-        return JSON.parse(await StorageManager.get(path, encoding), reviver)
+        return new Promise(async (resolve, reject) =>
+        {
+            try {
+                resolve(JSON.parse(await StorageManager.get(path, encoding), reviver))
+            } catch (err: unknown) {
+                reject(err)
+            }
+        })
     }
 
     /**
