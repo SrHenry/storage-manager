@@ -39,6 +39,13 @@ type NodeJS_fsDuplexOptions = {
 type NodeJS_fsOptionsType<T extends FileStreamMode> = T extends ReadMode ? NodeJS_fsReadOptions : T extends WriteMode ? NodeJS_fsWriteOptions : T extends DuplexMode ? NodeJS_fsDuplexOptions : never
 
 
+type JSONParameters = Omit<Parameters<typeof JSON.parse>, "text">
+type RemoveFromTuple<T extends Iterable<any>, U> = {
+    [K in keyof T]: K extends U ? never : T[K]
+}
+
+
+
 /** Supported input types for underlying API (node/fs) */
 export type ValidInput = string | Buffer
 
@@ -306,9 +313,9 @@ export class StorageManager
      * If a member contains nested objects, the nested objects are transformed before the parent object is.
      * @since 1.2.0
      */
-    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", [, ...args]: Parameters<typeof JSON.parse>)
+    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?:(this: any, key: string, value: any) => any)
     {
-        return JSON.parse(await StorageManager.get(path, encoding), ...args)
+        return JSON.parse(await StorageManager.get(path, encoding), reviver)
     }
 
     /**
