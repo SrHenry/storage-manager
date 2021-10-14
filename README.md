@@ -6,7 +6,7 @@
 <div align="center">
 
 [![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/SrHenry/storage-manager)
-[![GitLab](https://badgen.net/badge/icon/gitlab?icon=gitlab&label)](https://github.com/SrHenry/storage-manager)
+[![GitLab](https://badgen.net/badge/icon/gitlab?icon=gitlab&label)](https://gitlab.com/SrHenry/storage-manager)
 
 [![Npm package version](https://badgen.net/npm/v/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
 [![Npm package total downloads](https://badgen.net/npm/dt/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
