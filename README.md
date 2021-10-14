@@ -5,9 +5,12 @@
 <br>
 <div align="center">
 
-![npm (scoped)](https://img.shields.io/npm/v/@srhenry/storage-manager)
-![npm](https://img.shields.io/npm/dt/@srhenry/storage-manager)
-![NPM](https://img.shields.io/npm/l/@srhenry/storage-manager)
+[![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/SrHenry/storage-manager)
+[![GitLab](https://badgen.net/badge/icon/gitlab?icon=gitlab&label)](https://github.com/SrHenry/storage-manager)
+
+[![Npm package version](https://badgen.net/npm/v/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
+[![Npm package total downloads](https://badgen.net/npm/dt/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
+[![Npm package license](https://badgen.net/npm/license/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
 </div>
 
 <br>

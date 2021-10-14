@@ -15,8 +15,7 @@
     "storage",
     "file",
     "fs",
-    "stream",
-    "srhenry"
+    "stream"
   ],
   "author": "SrHenry",
   "license": "MIT",
