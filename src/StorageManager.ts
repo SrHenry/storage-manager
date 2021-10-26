@@ -83,6 +83,9 @@ export function sanitizeInput(input: any): ValidInput
  */
 export class StorageManager
 {
+    /** @internal */
+    private constructor() {}
+
     public static readonly constants = fs.constants
 
     public static readonly path = Path
@@ -529,6 +532,7 @@ export class StorageManager
         }
     }
 
+    public static stream = StorageManager.fileStream
     /**
      * Wrapper to check if a path already exists in filesystem.
      * @param path Path to check avaiability.
@@ -999,10 +1003,7 @@ export class StorageManager
      * @param filePath A path to unlink or delete from filesystem.
      * @returns A promise of the delete operation.
      */
-    public static async delete(path: string)
-    {
-        return StorageManager.deleteFromStorage(path)
-    }
+    public static delete = StorageManager.deleteFromStorage
 
     /**
      * Wrapper for opening attempts to a path, be file or directory.
@@ -1010,6 +1011,8 @@ export class StorageManager
      * @param ifFile Optional callback called if path leads to a file.
      * @param ifDir Optional callback called if path leads to a directory.
      * @param encoding Optional encoding for files, default utf-8.
+     *
+     * @deprecated @see {@link StorageManager.stats StorageManager.stats()}
      */
     public static async openFileOrDirectory(path: string,
         ifFile?: (err: NodeJS.ErrnoException | null, data: string) => void,

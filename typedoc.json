@@ -1,0 +1,11 @@
+{
+    "entryPoints": ["src/index.ts"],
+    "out": "docs",
+    "entryPointStrategy": "expand",
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeInternal": true,
+    "pretty": true,
+    "name": "Storage Manager",
+    "readme": "README.md"
+}
