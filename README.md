@@ -2,7 +2,7 @@
 
 > Storage Manager module to wrap Node.js filesystem access with ease. This module is Promise-ready, all methods return promises or stream objects. Both Javascript (CommonJS) and Typescript (ES6+) are supported.
 
-<br>
+<br/>
 <div align="center">
 
 [![GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/SrHenry/storage-manager)
@@ -12,10 +12,18 @@
 [![Npm package total downloads](https://badgen.net/npm/dt/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
 [![Npm package license](https://badgen.net/npm/license/@srhenry/storage-manager)](https://npmjs.com/package/@srhenry/storage-manager)
 </div>
+<br/>
 
-<br>
+## **Table of Contents**
 
-## Installing
+- [Installing](#installing)
+- [Docs](#docs)
+- [Examples](#examples)
+
+<br/>
+<br/>
+
+## <span id="installing"> **Installing** </span>
 
 ```bash
 npm install @srhenry/storage-manager --save
@@ -27,7 +35,15 @@ cd storage-manager
 npm run build
 ```
 
-## Some examples
+<br/>
+
+## <span id="docs"> **Docs** </span>
+> - [Gitlab Pages](https://srhenry.gitlab.io/storage-manager)
+> - [Github Pages](https://srhenry.github.io/storage-manager)
+
+<br/>
+
+## <span id="examples"> **Some examples** </span>
 
 ```typescript
 /**
