@@ -38,11 +38,14 @@ type NodeJS_fsDuplexOptions = {
 /** Helper to infer fs stream options from file mode */
 type NodeJS_fsOptionsType<T extends FileStreamMode> = T extends ReadMode ? NodeJS_fsReadOptions : T extends WriteMode ? NodeJS_fsWriteOptions : T extends DuplexMode ? NodeJS_fsDuplexOptions : never
 
+/*
 
 type JSONParameters = Omit<Parameters<typeof JSON.parse>, "text">
 type RemoveFromTuple<T extends Iterable<any>, U> = {
     [K in keyof T]: K extends U ? never : T[K]
 }
+
+*/
 
 
 
@@ -84,7 +87,7 @@ export function sanitizeInput(input: any): ValidInput
 export class StorageManager
 {
     /** @internal */
-    private constructor() {}
+    private constructor() { }
 
     public static readonly constants = fs.constants
 
@@ -789,7 +792,7 @@ export class StorageManager
         fs.access(removeLastElement(filePath.split("/")).join("/"), fs.constants.F_OK, err =>
         {
             if (err) {
-                fs.mkdir(removeLastElement(filePath.split("/")).join("/"), { recursive: true }, (err, path) =>
+                fs.mkdir(removeLastElement(filePath.split("/")).join("/"), { recursive: true }, (err, _path) =>
                 {
                     if (err) {
                         if (err.code !== 'EEXIST')
@@ -830,7 +833,7 @@ export class StorageManager
             }
 
             StorageManager.checkExist(path)
-                .then(async () => resolve(promiseArgs(null, path)),
+                .then(async () => preHandler(null, path),
                     async () =>
                     {
                         if (lt(process.versions.node, "10.12.0")) {
@@ -839,10 +842,12 @@ export class StorageManager
                                     options,
                                     (err: NodeJS.ErrnoException | null) =>
                                     {
-                                        if (arr.length - 1 > i)
-                                            if (err && err.code !== 'EEXIST')
+                                        if (arr.length - 1 > i) {
+                                            if (err && err.code !== 'EEXIST') {
                                                 console.error(err)
-                                            else return null
+                                                preHandler(err)
+                                            }
+                                        }
                                         else preHandler(err)
                                     }))
                         }
@@ -869,7 +874,7 @@ export class StorageManager
         {
             const parentPath = removeLastElement(filePath.split("/")).join("/")
             StorageManager.mkdir(parentPath, { recursive: true }).then(
-                err =>
+                _ =>
                 {
                     const wstream = fs.createWriteStream(filePath)
 
@@ -922,8 +927,8 @@ export class StorageManager
         {
             let arr_buffer = new Array<Buffer>();
 
-            const wstream = StorageManager.readFileStream(filePath, {
-                write: (chunk: Buffer, encoding: BufferEncoding, next: (err?: Error | null) => void) =>
+            /* const wstream =  */StorageManager.readFileStream(filePath, {
+                write: (chunk: Buffer, _encoding: BufferEncoding, next: (err?: Error | null) => void) =>
                 {
                     arr_buffer.push(chunk)
                     next()

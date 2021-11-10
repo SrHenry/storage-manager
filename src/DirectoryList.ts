@@ -1,5 +1,5 @@
 import { TypeOfTag } from "typescript"
-import { dirname, basename, join } from "path"
+import { basename } from "path"
 import { Stats } from "fs"
 
 
@@ -67,7 +67,7 @@ export class DirectoryList
             yield item
     }
 
-    public [Symbol.toPrimitive](hint: TypeOfTag)
+    public [Symbol.toPrimitive](hint: TypeOfTag): string | void
     {
         switch (hint) {
             case 'string':

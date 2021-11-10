@@ -5,3 +5,4 @@ docs
 /src/*.draft.ts
 /package-lock.json
 /dir0
+.gitlab-ci.yml

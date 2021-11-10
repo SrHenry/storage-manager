@@ -4,6 +4,9 @@ export { StorageManager } from "./StorageManager"
 export { DirectoryList } from "./DirectoryList"
 
 export const {
+    constants,
+    path,
+
     put,
     putStreamed,
     append,
