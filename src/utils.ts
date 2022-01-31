@@ -8,37 +8,33 @@
  *
  * @returns {T} The list without the last element of it
  */
-export function removeLastElement<T extends Array<U>, U>(list: T): T
-{
+export function removeLastElement<T extends Array<U>, U>(list: T): T {
     list.pop()
     return list
 }
 
 /** Check if given input is Iterable */
-export function isIterable(obj: any): obj is Iterable<any>
-{
-    return obj[Symbol.iterator] === "function"
+export function isIterable(obj: any): obj is Iterable<any> {
+    return typeof obj[Symbol.iterator] === 'function'
 }
 
 /** Check if given input is AsyncIterable */
-export function isAsyncIterable(obj: any): obj is AsyncIterable<any>
-{
-    return obj[Symbol.asyncIterator] === "function"
+export function isAsyncIterable(obj: any): obj is AsyncIterable<any> {
+    return typeof obj[Symbol.asyncIterator] === 'function'
 }
 
 /** Omit an subtype from given type */
 export type IgnoreUnionType<T, U = unknown> = T extends U ? never : T
 
-export namespace LogicGates
-{
+export namespace LogicGates {
     /**
- * Logic gate 'AND' to many inputs.
- *
- * @param values input list of argument values.
- *
- * @returns result of nested 'AND' Logic gate.
- */
-    export const AND = (...values: any[]) => values.reduce<boolean>((p, v) => (p && !!v), true)
+     * Logic gate 'AND' to many inputs.
+     *
+     * @param values input list of argument values.
+     *
+     * @returns result of nested 'AND' Logic gate.
+     */
+    export const AND = (...values: any[]) => values.reduce<boolean>((p, v) => p && !!v, true)
 
     /**
      * Logic gate 'OR' to many inputs.
@@ -47,11 +43,8 @@ export namespace LogicGates
      *
      * @returns result of nested 'OR' Logic gate.
      */
-    export const OR = (...values: any[]) =>
-    {
-        for (const value of values)
-            if (!!value)
-                return true
+    export const OR = (...values: any[]) => {
+        for (const value of values) if (!!value) return true
         return false
     }
 
@@ -92,7 +85,7 @@ export namespace LogicGates
      *
      * @returns result of 'XOR' Logic gate.
      */
-    export const XOR = (...values: any[]) => OR(...values) && OR(...(values.map(NOT)))
+    export const XOR = (...values: any[]) => OR(...values) && OR(...values.map(NOT))
 
     /**
      * Logic gate 'XNOR' (eXclusive Not OR) to many inputs.

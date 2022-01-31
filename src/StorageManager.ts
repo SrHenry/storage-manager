@@ -248,9 +248,9 @@ export class StorageManager {
         charset: BufferEncoding = 'utf-8'
     ) {
         if (await StorageManager.exists(path)) {
-            for await (const chunk of values) {
-                await StorageManager.append(path, chunk, charset)
-            }
+            // for await (const chunk of values) {
+            //     await StorageManager.append(path, chunk, charset)
+            // }
 
             const writeFactory = (path: string, encoding: BufferEncoding) => {
                 const ws = StorageManager.fileStream(path, 'w', null, { flags: 'a' })
