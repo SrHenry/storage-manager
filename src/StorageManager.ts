@@ -1,29 +1,48 @@
-import fs from "fs"
-import os from "os"
-import Stream from "stream"
-import Path, { join, basename, dirname } from "path"
-import { IgnoreUnionType, isAsyncIterable, isIterable, removeLastElement, LogicGates } from "./utils"
-import { lt } from "semver"
-import { DirectoryList } from "./DirectoryList"
-
-
+import fs from 'fs'
+import os from 'os'
+import Stream from 'stream'
+import Path, { join, basename, dirname } from 'path'
+import {
+    IgnoreUnionType,
+    isAsyncIterable,
+    isIterable,
+    removeLastElement,
+    LogicGates,
+} from './utils'
+import { lt } from 'semver'
+import { DirectoryList } from './DirectoryList'
 
 /** Read mode */
-type ReadMode = "r"
+type ReadMode = 'r'
 /** Write mode */
-type WriteMode = "w"
+type WriteMode = 'w'
 /** Read and write mode */
-type DuplexMode = "rw"
+type DuplexMode = 'rw'
 
 /** File modes supported */
 export type FileStreamMode = ReadMode | WriteMode | DuplexMode
 /** Stream options supported */
-export type FileStreamOptions = Stream.ReadableOptions | Stream.WritableOptions | Stream.DuplexOptions
+export type FileStreamOptions =
+    | Stream.ReadableOptions
+    | Stream.WritableOptions
+    | Stream.DuplexOptions
 
 /** Helper to infer Stream type from file mode */
-type FileStreamType<T extends FileStreamMode> = T extends ReadMode ? Stream.Readable : T extends WriteMode ? Stream.Writable : T extends DuplexMode ? Stream.Duplex : never
+type FileStreamType<T extends FileStreamMode> = T extends ReadMode
+    ? Stream.Readable
+    : T extends WriteMode
+    ? Stream.Writable
+    : T extends DuplexMode
+    ? Stream.Duplex
+    : never
 /** Helper to infer StreamOptions type from file mode */
-type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode ? Stream.ReadableOptions : T extends WriteMode ? Stream.WritableOptions : T extends DuplexMode ? Stream.DuplexOptions : never
+type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode
+    ? Stream.ReadableOptions
+    : T extends WriteMode
+    ? Stream.WritableOptions
+    : T extends DuplexMode
+    ? Stream.DuplexOptions
+    : never
 
 /** fs Stream options supported in read mode */
 type NodeJS_fsReadOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
@@ -36,7 +55,13 @@ type NodeJS_fsDuplexOptions = {
 }
 
 /** Helper to infer fs stream options from file mode */
-type NodeJS_fsOptionsType<T extends FileStreamMode> = T extends ReadMode ? NodeJS_fsReadOptions : T extends WriteMode ? NodeJS_fsWriteOptions : T extends DuplexMode ? NodeJS_fsDuplexOptions : never
+type NodeJS_fsOptionsType<T extends FileStreamMode> = T extends ReadMode
+    ? NodeJS_fsReadOptions
+    : T extends WriteMode
+    ? NodeJS_fsWriteOptions
+    : T extends DuplexMode
+    ? NodeJS_fsDuplexOptions
+    : never
 
 /*
 
@@ -46,8 +71,6 @@ type RemoveFromTuple<T extends Iterable<any>, U> = {
 }
 
 */
-
-
 
 /** Supported input types for underlying API (node/fs) */
 export type ValidInput = string | Buffer
@@ -68,26 +91,19 @@ export function sanitizeInput(input: object): string
 export function sanitizeInput<T = unknown>(input: T[]): string
 export function sanitizeInput<T = unknown>(input: T): string
 
-export function sanitizeInput(input: any): ValidInput
-{
-    if (Buffer.isBuffer(input) || typeof input === "string")
-        return input
-    else if (Array.isArray(input) || typeof input === "object")
-        return JSON.stringify(input)
-    else if ('toString' in input)
-        return input.toString()
-    else
-        return `${input}`
+export function sanitizeInput(input: any): ValidInput {
+    if (Buffer.isBuffer(input) || typeof input === 'string') return input
+    else if (Array.isArray(input) || typeof input === 'object') return JSON.stringify(input)
+    else if ('toString' in input) return input.toString()
+    else return `${input}`
 }
-
 
 /**
  * A filesystem wrapper class
  */
-export class StorageManager
-{
+export class StorageManager {
     /** @internal */
-    private constructor() { }
+    private constructor() {}
 
     public static readonly constants = fs.constants
 
@@ -99,27 +115,21 @@ export class StorageManager
      * @param value Plain string to insert into file, or Buffer instance, or serializable (as JSON) object.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async put(path: string, value: Input, charset: BufferEncoding = "utf-8")
-    {
-        if (path.split("/").length > 1)
+    public static async put(path: string, value: Input, charset: BufferEncoding = 'utf-8') {
+        if (path.split('/').length > 1)
             await StorageManager.mkdir(dirname(path), { recursive: true })
 
-        return new Promise<boolean>((resolve, reject) =>
-        {
+        return new Promise<boolean>((resolve, reject) => {
             try {
-                const stream = StorageManager.fileStream(path, "w")
+                const stream = StorageManager.fileStream(path, 'w')
 
-                stream.write(sanitizeInput(value), charset, err =>
-                {
+                stream.write(sanitizeInput(value), charset, err => {
                     stream.end()
 
-                    if (!!err)
-                        reject(err)
-                    else
-                        resolve(true)
+                    if (!!err) reject(err)
+                    else resolve(true)
                 })
-            }
-            catch (err: unknown) {
+            } catch (err: unknown) {
                 reject(err)
             }
         })
@@ -131,45 +141,57 @@ export class StorageManager
      * @param values You can provide an async iterable object to write on demand or a synchronous one to group inputs before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async putStreamed(path: string, values: AsyncIterable<Input>, charset?: BufferEncoding): Promise<void>
-    public static async putStreamed(path: string, values: Iterable<Input>, charset?: BufferEncoding): Promise<void>
-    public static async putStreamed(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+    public static async putStreamed(
+        path: string,
+        values: AsyncIterable<Input>,
+        charset?: BufferEncoding
+    ): Promise<void>
+    public static async putStreamed(
+        path: string,
+        values: Iterable<Input>,
+        charset?: BufferEncoding
+    ): Promise<void>
+    public static async putStreamed(
+        path: string,
+        value: Input,
+        charset?: BufferEncoding
+    ): Promise<void>
 
-    public static async putStreamed(path: string, values: AsyncIterable<Input> | Iterable<Input> | Input, charset: BufferEncoding = "utf-8"): Promise<void>
-    {
-        if (path.split("/").length > 1)
+    public static async putStreamed(
+        path: string,
+        values: AsyncIterable<Input> | Iterable<Input> | Input,
+        charset: BufferEncoding = 'utf-8'
+    ): Promise<void> {
+        if (path.split('/').length > 1)
             await StorageManager.mkdir(dirname(path), { recursive: true })
 
-        const writeFactory = (path: string, encoding: BufferEncoding) =>
-        {
-            const ws = StorageManager.fileStream(path, "w")
+        const writeFactory = (path: string, encoding: BufferEncoding) => {
+            const ws = StorageManager.fileStream(path, 'w')
 
             return {
                 stream: ws,
-                write: (input: Input) => new Promise<boolean>((resolve, reject) =>
-                {
-                    ws.write(sanitizeInput(input), encoding, err => !!err ? reject(err) : resolve(true))
-                })
+                write: (input: Input) =>
+                    new Promise<boolean>((resolve, reject) => {
+                        ws.write(sanitizeInput(input), encoding, err =>
+                            !!err ? reject(err) : resolve(true)
+                        )
+                    }),
             }
         }
 
         if (isIterable(values)) {
             const { stream, write } = writeFactory(path, charset)
 
-            for (const chunk of values)
-                await write(chunk)
+            for (const chunk of values) await write(chunk)
 
             stream.end()
-        }
-        else if (isAsyncIterable(values)) {
+        } else if (isAsyncIterable(values)) {
             const { stream, write } = writeFactory(path, charset)
 
-            for await (const chunk of values)
-                await write(chunk)
+            for await (const chunk of values) await write(chunk)
 
             stream.end()
-        }
-        else {
+        } else {
             const { stream, write } = writeFactory(path, charset)
 
             await write(values)
@@ -184,21 +206,18 @@ export class StorageManager
      * @param value Plain string to append to file, or Buffer instance, or serializable (as JSON) object.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async append(path: string, value: Input, charset: BufferEncoding = "utf-8")
-    {
+    public static async append(path: string, value: Input, charset: BufferEncoding = 'utf-8') {
         if (await StorageManager.exists(path)) {
-            return new Promise<boolean>((resolve, reject) =>
-            {
-                const chunk = Buffer.isBuffer(value) ? value : Buffer.from(sanitizeInput(value), charset)
-                fs.appendFile(path, chunk, err =>
-                {
-                    if (!!err)
-                        reject(err)
+            return new Promise<boolean>((resolve, reject) => {
+                const chunk = Buffer.isBuffer(value)
+                    ? value
+                    : Buffer.from(sanitizeInput(value), charset)
+                fs.appendFile(path, chunk, err => {
+                    if (!!err) reject(err)
                     else resolve(true)
                 })
             })
-        }
-        else return StorageManager.put(path, value, charset)
+        } else return StorageManager.put(path, value, charset)
     }
 
     /**
@@ -207,55 +226,66 @@ export class StorageManager
      * @param values You can provide an async iterable object to write on demand or a synchronous one to group inputs before write.
      * @param charset Optional charset of data. Default is "utf-8".
      */
-    public static async appendStreamed(path: string, values: AsyncIterable<Input>, charset?: BufferEncoding): Promise<void>
-    public static async appendStreamed(path: string, values: Iterable<Input>, charset?: BufferEncoding): Promise<void>
-    public static async appendStreamed(path: string, value: Input, charset?: BufferEncoding): Promise<void>
+    public static async appendStreamed(
+        path: string,
+        values: AsyncIterable<Input>,
+        charset?: BufferEncoding
+    ): Promise<void>
+    public static async appendStreamed(
+        path: string,
+        values: Iterable<Input>,
+        charset?: BufferEncoding
+    ): Promise<void>
+    public static async appendStreamed(
+        path: string,
+        value: Input,
+        charset?: BufferEncoding
+    ): Promise<void>
 
-    public static async appendStreamed(path: string, values: AsyncIterable<Input> | Iterable<Input>, charset: BufferEncoding = "utf-8")
-    {
+    public static async appendStreamed(
+        path: string,
+        values: AsyncIterable<Input> | Iterable<Input>,
+        charset: BufferEncoding = 'utf-8'
+    ) {
         if (await StorageManager.exists(path)) {
             for await (const chunk of values) {
                 await StorageManager.append(path, chunk, charset)
             }
 
-            const writeFactory = (path: string, encoding: BufferEncoding) =>
-            {
-                const ws = StorageManager.fileStream(path, "w", null, { flags: "a" })
+            const writeFactory = (path: string, encoding: BufferEncoding) => {
+                const ws = StorageManager.fileStream(path, 'w', null, { flags: 'a' })
 
                 return {
                     stream: ws,
-                    write: (input: Input) => new Promise<boolean>((resolve, reject) =>
-                    {
-                        ws.write(sanitizeInput(input), encoding, err => !!err ? reject(err) : resolve(true))
-                    })
+                    write: (input: Input) =>
+                        new Promise<boolean>((resolve, reject) => {
+                            ws.write(sanitizeInput(input), encoding, err =>
+                                !!err ? reject(err) : resolve(true)
+                            )
+                        }),
                 }
             }
 
             if (isIterable(values)) {
                 const { stream, write } = writeFactory(path, charset)
 
-                for (const chunk of values)
-                    await write(chunk)
+                for (const chunk of values) await write(chunk)
 
                 stream.end()
-            }
-            else if (isAsyncIterable(values)) {
+            } else if (isAsyncIterable(values)) {
                 const { stream, write } = writeFactory(path, charset)
 
-                for await (const chunk of values)
-                    await write(chunk)
+                for await (const chunk of values) await write(chunk)
 
                 stream.end()
-            }
-            else {
+            } else {
                 const { stream, write } = writeFactory(path, charset)
 
                 await write(values)
 
                 stream.end()
             }
-        }
-        else return StorageManager.putStreamed(path, values, charset)
+        } else return StorageManager.putStreamed(path, values, charset)
     }
 
     /**
@@ -264,10 +294,8 @@ export class StorageManager
      * @param encoding Optional encoding of string. Default is "utf-8".
      * @returns The string content of the file.
      */
-    public static async get(path: string, encoding: BufferEncoding = "utf-8")
-    {
-        return new Promise<string>((resolve, reject) =>
-        {
+    public static async get(path: string, encoding: BufferEncoding = 'utf-8') {
+        return new Promise<string>((resolve, reject) => {
             StorageManager.getAsBuffer(path)
                 .then(buffer => resolve(buffer.toString(encoding)))
                 .catch(reject)
@@ -279,27 +307,21 @@ export class StorageManager
      * @param path Path to read file.
      * @returns The array with the binary buffers streamed of the file.
      */
-    public static getAsBuffers(path: string)
-    {
-        return new Promise<Buffer[]>(async (resolve, reject) =>
-        {
+    public static getAsBuffers(path: string) {
+        return new Promise<Buffer[]>(async (resolve, reject) => {
             if (await StorageManager.exists(path)) {
                 const arraybuffer = new Array<Buffer>()
-                const readStream = StorageManager.fileStream(path, "r")
+                const readStream = StorageManager.fileStream(path, 'r')
 
                 readStream.on('error', reject)
 
-                readStream.on('data', chunk =>
-                {
-                    if (Buffer.isBuffer(chunk))
-                        arraybuffer.push(chunk)
-                    else
-                        arraybuffer.push(Buffer.from(chunk))
-                });
+                readStream.on('data', chunk => {
+                    if (Buffer.isBuffer(chunk)) arraybuffer.push(chunk)
+                    else arraybuffer.push(Buffer.from(chunk))
+                })
 
                 readStream.on('close', () => resolve(arraybuffer))
-            }
-            else reject(null)
+            } else reject(null)
         })
     }
 
@@ -308,14 +330,11 @@ export class StorageManager
      * @param path Path to read file.
      * @returns The array with the binary buffers streamed of the file.
      */
-    public static getAsBuffer(path: string)
-    {
-        return new Promise<Buffer>(async (resolve, reject) =>
-        {
+    public static getAsBuffer(path: string) {
+        return new Promise<Buffer>(async (resolve, reject) => {
             try {
                 resolve(Buffer.concat(await StorageManager.getAsBuffers(path)))
-            }
-            catch (err: unknown) {
+            } catch (err: unknown) {
                 reject(err)
             }
         })
@@ -329,10 +348,12 @@ export class StorageManager
      * If a member contains nested objects, the nested objects are transformed before the parent object is.
      * @since 1.2.0
      */
-    public static async getAsJSON(path: string, encoding: BufferEncoding = "utf8", reviver?: (this: any, key: string, value: any) => any)
-    {
-        return new Promise(async (resolve, reject) =>
-        {
+    public static async getAsJSON(
+        path: string,
+        encoding: BufferEncoding = 'utf8',
+        reviver?: (this: any, key: string, value: any) => any
+    ) {
+        return new Promise(async (resolve, reject) => {
             try {
                 resolve(JSON.parse(await StorageManager.get(path, encoding), reviver))
             } catch (err: unknown) {
@@ -348,22 +369,16 @@ export class StorageManager
      *
      * @since 1.4.0
      */
-    public static async rename(path: string, renameTo: string): Promise<void>
-    {
-        return new Promise((resolve, reject) =>
-        {
+    public static async rename(path: string, renameTo: string): Promise<void> {
+        return new Promise((resolve, reject) => {
             let dest = dirname(renameTo)
-            if (dest === ".")
-                dest = join(dirname(path))
+            if (dest === '.') dest = join(dirname(path))
 
             const to = join(dest, basename(renameTo))
 
-            fs.rename(path, to, err =>
-            {
-                if (err)
-                    reject(err)
-                else
-                    resolve()
+            fs.rename(path, to, err => {
+                if (err) reject(err)
+                else resolve()
             })
         })
     }
@@ -376,8 +391,7 @@ export class StorageManager
      *
      * @since 1.4.0
      */
-    public static async move(from: string, to: string, as?: string)
-    {
+    public static async move(from: string, to: string, as?: string) {
         return StorageManager.rename(from, join(to, as ?? basename(from)))
     }
 
@@ -389,12 +403,9 @@ export class StorageManager
      *
      * @since 1.4.0
      */
-    public static async copy(from: string, to: string, as?: string): Promise<void>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
-            const stats = await StorageManager.stats(from)
-                .catch(err => resolve(err))
+    public static async copy(from: string, to: string, as?: string): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            const stats = await StorageManager.stats(from).catch(err => resolve(err))
 
             if (stats) {
                 const dest = join(to, as ?? basename(from))
@@ -402,29 +413,25 @@ export class StorageManager
                 if (stats.isFile()) {
                     await StorageManager.mkdir(to, { recursive: true })
 
-                    fs.copyFile(from, dest, err =>
-                    {
-                        if (err)
-                            reject(err)
-                        else
-                            resolve()
+                    fs.copyFile(from, dest, err => {
+                        if (err) reject(err)
+                        else resolve()
                     })
-                }
-                else if (stats.isDirectory()) {
+                } else if (stats.isDirectory()) {
                     await StorageManager.mkdir(dest, { recursive: true })
 
                     const dir = await StorageManager.listDirectory(from, true)
-                    const files = Array.from(dir)
-                        .filter((file): file is string => typeof file === "string")
+                    const files = Array.from(dir).filter(
+                        (file): file is string => typeof file === 'string'
+                    )
 
-                    const innerDirs = Array.from(dir)
-                        .filter((file): file is DirectoryList => file instanceof DirectoryList)
+                    const innerDirs = Array.from(dir).filter(
+                        (file): file is DirectoryList => file instanceof DirectoryList
+                    )
 
-                    for (const file of files)
-                        await StorageManager.copy(join(from, file), dest)
+                    for (const file of files) await StorageManager.copy(join(from, file), dest)
 
-                    for (const { name } of innerDirs)
-                        await StorageManager.copy(join(name), dest)
+                    for (const { name } of innerDirs) await StorageManager.copy(join(name), dest)
 
                     resolve()
                 }
@@ -440,8 +447,11 @@ export class StorageManager
      *
      * @returns Readable stream object of file
      */
-    public static readStream(path: string, options?: Stream.ReadableOptions | null, fsOptions?: NodeJS_fsReadOptions | null): Stream.Readable
-    {
+    public static readStream(
+        path: string,
+        options?: Stream.ReadableOptions | null,
+        fsOptions?: NodeJS_fsReadOptions | null
+    ): Stream.Readable {
         return StorageManager.fileStream(path, 'r', options, fsOptions)
     }
 
@@ -453,8 +463,11 @@ export class StorageManager
      *
      * @returns Writable stream object of file
      */
-    public static writeStream(path: string, options?: Stream.WritableOptions | null, fsOptions?: NodeJS_fsWriteOptions | null): Stream.Writable
-    {
+    public static writeStream(
+        path: string,
+        options?: Stream.WritableOptions | null,
+        fsOptions?: NodeJS_fsWriteOptions | null
+    ): Stream.Writable {
         return StorageManager.fileStream(path, 'w', options, fsOptions)
     }
 
@@ -466,8 +479,12 @@ export class StorageManager
      *
      * @returns Duplex stream object of file
      */
-    public static duplexStream(path: string, options?: Stream.DuplexOptions | null, readOptions?: NodeJS_fsReadOptions | null, writeOptions?: NodeJS_fsWriteOptions | null): Stream.Duplex
-    {
+    public static duplexStream(
+        path: string,
+        options?: Stream.DuplexOptions | null,
+        readOptions?: NodeJS_fsReadOptions | null,
+        writeOptions?: NodeJS_fsWriteOptions | null
+    ): Stream.Duplex {
         return StorageManager.fileStream(path, 'rw', options, {
             readOptions,
             writeOptions,
@@ -484,29 +501,48 @@ export class StorageManager
      * @returns Stream object of file
      */
     public static fileStream(path: string): Stream.Duplex
-    public static fileStream(path: string, mode: ReadMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: WriteMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
-    public static fileStream(path: string, mode: DuplexMode, options?: FileStreamOptionsType<typeof mode> | null, fsOptions?: NodeJS_fsOptionsType<typeof mode> | null): FileStreamType<typeof mode>
+    public static fileStream(
+        path: string,
+        mode: ReadMode,
+        options?: FileStreamOptionsType<typeof mode> | null,
+        fsOptions?: NodeJS_fsOptionsType<typeof mode> | null
+    ): FileStreamType<typeof mode>
+    public static fileStream(
+        path: string,
+        mode: WriteMode,
+        options?: FileStreamOptionsType<typeof mode> | null,
+        fsOptions?: NodeJS_fsOptionsType<typeof mode> | null
+    ): FileStreamType<typeof mode>
+    public static fileStream(
+        path: string,
+        mode: DuplexMode,
+        options?: FileStreamOptionsType<typeof mode> | null,
+        fsOptions?: NodeJS_fsOptionsType<typeof mode> | null
+    ): FileStreamType<typeof mode>
 
-    public static fileStream(path: string, mode: FileStreamMode = "rw", options: FileStreamOptionsType<typeof mode> | null = {}, fsOptions: NodeJS_fsOptionsType<typeof mode> | null = {}): FileStreamType<typeof mode>
-    {
+    public static fileStream(
+        path: string,
+        mode: FileStreamMode = 'rw',
+        options: FileStreamOptionsType<typeof mode> | null = {},
+        fsOptions: NodeJS_fsOptionsType<typeof mode> | null = {}
+    ): FileStreamType<typeof mode> {
         options = options ?? {}
         fsOptions = fsOptions ?? {}
 
-        switch (mode ?? "rw") {
-            case "r":
+        switch (mode ?? 'rw') {
+            case 'r':
                 return fs.createReadStream(path, {
                     ...options,
                     ...fsOptions,
                 })
                 break
-            case "w":
+            case 'w':
                 return fs.createWriteStream(path, {
                     ...options,
                     ...fsOptions,
                 })
                 break
-            case "rw":
+            case 'rw':
                 const [r, w] = [
                     fs.createReadStream(path, {
                         ...options,
@@ -515,7 +551,7 @@ export class StorageManager
                     fs.createWriteStream(path, {
                         ...options,
                         ...(fsOptions as NodeJS_fsDuplexOptions)?.writeOptions,
-                    })
+                    }),
                 ]
 
                 const streamOptions: FileStreamOptionsType<typeof mode> = {
@@ -531,7 +567,7 @@ export class StorageManager
                 return stream
                 break
             default:
-                throw new Error("Invalid file stream mode!")
+                throw new Error('Invalid file stream mode!')
         }
     }
 
@@ -556,9 +592,25 @@ export class StorageManager
     public static async exists(path1: string, path2: string): Promise<boolean>
     public static async exists(path1: string, path2: string, mode: number): Promise<boolean>
     public static async exists(path1: string, path2: string, path3: string): Promise<boolean>
-    public static async exists(path1: string, path2: string, path3: string, mode: number): Promise<boolean>
-    public static async exists(path1: string, path2: string, path3: string, path4: string): Promise<boolean>
-    public static async exists(path1: string, path2: string, path3: string, path4: string, mode: number): Promise<boolean>
+    public static async exists(
+        path1: string,
+        path2: string,
+        path3: string,
+        mode: number
+    ): Promise<boolean>
+    public static async exists(
+        path1: string,
+        path2: string,
+        path3: string,
+        path4: string
+    ): Promise<boolean>
+    public static async exists(
+        path1: string,
+        path2: string,
+        path3: string,
+        path4: string,
+        mode: number
+    ): Promise<boolean>
 
     /**
      * Wrapper to check if a path already exists in filesystem.
@@ -570,21 +622,19 @@ export class StorageManager
 
     public static async exists(...args: (string | number)[]): Promise<boolean>
 
-    public static async exists(...args: (string | number)[]): Promise<boolean>
-    {
+    public static async exists(...args: (string | number)[]): Promise<boolean> {
         let last = args.pop()
         let mode: number
-        let paths = Array.from(args).filter((arg): arg is string => typeof arg === "string")
+        let paths = Array.from(args).filter((arg): arg is string => typeof arg === 'string')
 
-        if (typeof last === "number")
-            mode = last
-        else
-            mode = fs.constants.F_OK
+        if (typeof last === 'number') mode = last
+        else mode = fs.constants.F_OK
 
-        if (typeof last === "string")
-            paths.push(last)
+        if (typeof last === 'string') paths.push(last)
 
-        return LogicGates.AND(...await Promise.all(paths.map(path => StorageManager._exists(path, mode))))
+        return LogicGates.AND(
+            ...(await Promise.all(paths.map(path => StorageManager._exists(path, mode))))
+        )
     }
 
     /**
@@ -593,8 +643,7 @@ export class StorageManager
      *
      * @returns A promise of existance check.
      */
-    private static async _exists(path: string, mode: number = fs.constants.F_OK): Promise<boolean>
-    {
+    private static async _exists(path: string, mode: number = fs.constants.F_OK): Promise<boolean> {
         return new Promise(resolve => fs.access(path, mode, err => resolve(!err)))
     }
 
@@ -603,27 +652,20 @@ export class StorageManager
      * @param path Path to retrieve stats.
      * @since 1.4.0
      */
-    public static async stats(path: string): Promise<fs.Stats>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
+    public static async stats(path: string): Promise<fs.Stats> {
+        return new Promise(async (resolve, reject) => {
             if (await StorageManager.exists(path)) {
-                fs.lstat(path, (err, stats) =>
-                {
-                    if (err)
-                        reject(err)
-                    else
-                        resolve(stats)
+                fs.lstat(path, (err, stats) => {
+                    if (err) reject(err)
+                    else resolve(stats)
                 })
-            }
-            else {
-                const err: NodeJS.ErrnoException = { ...new Error }
+            } else {
+                const err: NodeJS.ErrnoException = { ...new Error() }
                 err.code = 'ENOENT'
                 err.errno = os.constants.errno.ENOENT
                 err.path = path
 
                 Error.captureStackTrace(err)
-
 
                 reject(err)
             }
@@ -649,35 +691,46 @@ export class StorageManager
     public static async doesntExist(path1: string, path2: string): Promise<boolean>
     public static async doesntExist(path1: string, path2: string, mode: number): Promise<boolean>
     public static async doesntExist(path1: string, path2: string, path3: string): Promise<boolean>
-    public static async doesntExist(path1: string, path2: string, path3: string, mode: number): Promise<boolean>
-    public static async doesntExist(path1: string, path2: string, path3: string, path4: string): Promise<boolean>
-    public static async doesntExist(path1: string, path2: string, path3: string, path4: string, mode: number): Promise<boolean>
+    public static async doesntExist(
+        path1: string,
+        path2: string,
+        path3: string,
+        mode: number
+    ): Promise<boolean>
+    public static async doesntExist(
+        path1: string,
+        path2: string,
+        path3: string,
+        path4: string
+    ): Promise<boolean>
+    public static async doesntExist(
+        path1: string,
+        path2: string,
+        path3: string,
+        path4: string,
+        mode: number
+    ): Promise<boolean>
 
     /**
-    * Wrapper to check if a path does not exist in filesystem. Is the oposite of {@link StorageManager.exists exists()} method.
-    * @param paths Paths to check in a row.
-    *
-    * @returns A promise of non-existance check.
-    */
+     * Wrapper to check if a path does not exist in filesystem. Is the oposite of {@link StorageManager.exists exists()} method.
+     * @param paths Paths to check in a row.
+     *
+     * @returns A promise of non-existance check.
+     */
     public static async doesntExist(...paths: string[]): Promise<boolean>
 
     public static async doesntExist(...args: (string | number)[]): Promise<boolean>
 
-    public static async doesntExist(...args: (string | number)[]): Promise<boolean>
-    {
+    public static async doesntExist(...args: (string | number)[]): Promise<boolean> {
         return !(await StorageManager.exists(...args))
     }
 
     /** Checks if given path corresponds to a file */
-    public static async isFile(path: string): Promise<boolean>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
+    public static async isFile(path: string): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
             if (await StorageManager.exists(path))
-                fs.lstat(path, (err, stats) =>
-                {
-                    if (!!err)
-                        reject(err)
+                fs.lstat(path, (err, stats) => {
+                    if (!!err) reject(err)
                     resolve(stats.isFile())
                 })
             else resolve(false)
@@ -685,15 +738,11 @@ export class StorageManager
     }
 
     /** Checks if given path corresponds to a directory */
-    public static async isDirectory(path: string): Promise<boolean>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
+    public static async isDirectory(path: string): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
             if (await StorageManager.exists(path))
-                fs.lstat(path, (err, stats) =>
-                {
-                    if (!!err)
-                        reject(err)
+                fs.lstat(path, (err, stats) => {
+                    if (!!err) reject(err)
                     resolve(stats.isDirectory())
                 })
             else resolve(false)
@@ -708,46 +757,53 @@ export class StorageManager
     public static async listDirectory(path: string): Promise<string[]>
     public static async listDirectory(path: string, recursive: false): Promise<string[]>
     public static async listDirectory(path: string, recursive: true): Promise<DirectoryList>
-    public static async listDirectory(path: string, recursive = false): Promise<string[] | DirectoryList>
-    {
-        return new Promise(async (_return, _throw) =>
-        {
-            if (await StorageManager.doesntExist(path))
-                _return([])
-            else if (await StorageManager.isFile(path))
-                _return([path])
+    public static async listDirectory(
+        path: string,
+        recursive = false
+    ): Promise<string[] | DirectoryList> {
+        return new Promise(async (_return, _throw) => {
+            if (await StorageManager.doesntExist(path)) _return([])
+            else if (await StorageManager.isFile(path)) _return([path])
             else if (!!recursive) {
-                fs.readdir(path as string, async (err, list) =>
-                {
-                    if (!!err)
-                        _throw(err)
+                fs.readdir(path as string, async (err, list) => {
+                    if (!!err) _throw(err)
                     else {
                         type PathTuple = [path: string, fullpath: string]
                         type StatsTuple = [path: string, stats: fs.Stats]
 
                         const statsPromises = list
                             .map<PathTuple>(node => [node, join(path, node)])
-                            .map<Promise<StatsTuple>>(async ([node, _]) => [node, await StorageManager.stats(_)])
+                            .map<Promise<StatsTuple>>(async ([node, _]) => [
+                                node,
+                                await StorageManager.stats(_),
+                            ])
                         const stats = await Promise.all(statsPromises)
 
-                        const directories = stats.filter(([, stats]) => stats.isDirectory())
+                        const directories = stats
+                            .filter(([, stats]) => stats.isDirectory())
                             .map<PathTuple>(([_]) => [_, join(path, _)])
 
-                        const files = stats.filter(([, stats]) => stats.isFile())
+                        const files = stats
+                            .filter(([, stats]) => stats.isFile())
                             .map<PathTuple>(([_]) => [_, join(path, _)])
 
-                        const chainPromise = directories.map(([, fullpath]) => StorageManager.listDirectory(fullpath, true))
+                        const chainPromise = directories.map(([, fullpath]) =>
+                            StorageManager.listDirectory(fullpath, true)
+                        )
                         const chain = await Promise.all(chainPromise)
 
-                        _return(new DirectoryList(path, [...chain, ...files.map(([_]) => _)], await StorageManager.stats(path)))
+                        _return(
+                            new DirectoryList(
+                                path,
+                                [...chain, ...files.map(([_]) => _)],
+                                await StorageManager.stats(path)
+                            )
+                        )
                     }
                 })
-            }
-            else {
-                fs.readdir(path as string, async (err, list) =>
-                {
-                    if (!!err)
-                        _throw(err)
+            } else {
+                fs.readdir(path as string, async (err, list) => {
+                    if (!!err) _throw(err)
                     else {
                         _return(list)
                     }
@@ -764,12 +820,15 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.exists StorageManager.exists()}
      */
-    public static async checkExist(path: string, cb?: (exists?: (boolean | PromiseLike<boolean> | undefined)) => any): Promise<boolean>
-    {
-        return new Promise((resolve, reject) => fs.access(path, fs.constants.F_OK, err =>
-        {
-            !!err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
-        }))
+    public static async checkExist(
+        path: string,
+        cb?: (exists?: boolean | PromiseLike<boolean> | undefined) => any
+    ): Promise<boolean> {
+        return new Promise((resolve, reject) =>
+            fs.access(path, fs.constants.F_OK, err => {
+                !!err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
+            })
+        )
     }
 
     /**
@@ -783,26 +842,28 @@ export class StorageManager
      *  {@link StorageManager.append StorageManager.append()},
      *  {@link StorageManager.appendStreamed StorageManager.appendStreamed()},
      */
-    public static async writeStorage(filePath: string, f: ArrayBuffer | SharedArrayBuffer | Uint8Array, encoding: BufferEncoding = "binary"): Promise<void>
-    {
+    public static async writeStorage(
+        filePath: string,
+        f: ArrayBuffer | SharedArrayBuffer | Uint8Array,
+        encoding: BufferEncoding = 'binary'
+    ): Promise<void> {
         let buffer = Buffer.from(f)
 
         // removeLastElement(filePath.split("/"))
 
-        fs.access(removeLastElement(filePath.split("/")).join("/"), fs.constants.F_OK, err =>
-        {
+        fs.access(removeLastElement(filePath.split('/')).join('/'), fs.constants.F_OK, err => {
             if (err) {
-                fs.mkdir(removeLastElement(filePath.split("/")).join("/"), { recursive: true }, (err, _path) =>
-                {
-                    if (err) {
-                        if (err.code !== 'EEXIST')
-                            console.error(err)
-                        else fs.createWriteStream(filePath).write(buffer, encoding)
+                fs.mkdir(
+                    removeLastElement(filePath.split('/')).join('/'),
+                    { recursive: true },
+                    (err, _path) => {
+                        if (err) {
+                            if (err.code !== 'EEXIST') console.error(err)
+                            else fs.createWriteStream(filePath).write(buffer, encoding)
+                        } else fs.createWriteStream(filePath).write(buffer, encoding)
                     }
-                    else fs.createWriteStream(filePath).write(buffer, encoding)
-                })
-            }
-            else removeLastElement(filePath.split("/")).join("/")
+                )
+            } else removeLastElement(filePath.split('/')).join('/')
         })
         // return fs.createWriteStream(filePath).write(buffer, encoding);
     }
@@ -814,47 +875,41 @@ export class StorageManager
      * @param cb Optional callback for mkdir async operation.
      * @returns A promise of mkdir operation.
      */
-    public static async mkdir(path: string,
+    public static async mkdir(
+        path: string,
         options: fs.MakeDirectoryOptions = { recursive: true },
-        cb?: (err: NodeJS.ErrnoException | null, path?: string) => null)
-    {
-        return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void,
-            reject) =>
-        {
-            const promiseArgs = (first: any, ...args: any[]) => cb ? cb(first, ...args) : first
-            const preHandler = (err: NodeJS.ErrnoException | null, path?: string) =>
-            {
+        cb?: (err: NodeJS.ErrnoException | null, path?: string) => null
+    ) {
+        return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void, reject) => {
+            const promiseArgs = (first: any, ...args: any[]) => (cb ? cb(first, ...args) : first)
+            const preHandler = (err: NodeJS.ErrnoException | null, path?: string) => {
                 if (!!err) {
-                    if (err.code !== 'EEXIST')
-                        return reject(promiseArgs(err, path))
+                    if (err.code !== 'EEXIST') return reject(promiseArgs(err, path))
                     else return resolve(promiseArgs(err, path))
-                }
-                else return resolve(promiseArgs(null, path))
+                } else return resolve(promiseArgs(null, path))
             }
 
-            StorageManager.checkExist(path)
-                .then(async () => preHandler(null, path),
-                    async () =>
-                    {
-                        if (lt(process.versions.node, "10.12.0")) {
-                            return path.split("/")
-                                .map((v, i, arr) => fs.mkdir(path.split(v)[0].concat(v),
-                                    options,
-                                    (err: NodeJS.ErrnoException | null) =>
-                                    {
-                                        if (arr.length - 1 > i) {
-                                            if (err && err.code !== 'EEXIST') {
-                                                console.error(err)
-                                                preHandler(err)
-                                            }
+            StorageManager.checkExist(path).then(
+                async () => preHandler(null, path),
+                async () => {
+                    if (lt(process.versions.node, '10.12.0')) {
+                        return path.split('/').map((v, i, arr) =>
+                            fs.mkdir(
+                                this.path.join(String(path.split(v)[0]), v),
+                                options,
+                                (err: NodeJS.ErrnoException | null) => {
+                                    if (arr.length - 1 > i) {
+                                        if (err && err.code !== 'EEXIST') {
+                                            console.error(err)
+                                            preHandler(err)
                                         }
-                                        else preHandler(err)
-                                    }))
-                        }
-                        else return fs.mkdir(path,
-                            options,
-                            preHandler)
-                    })
+                                    } else preHandler(err)
+                                }
+                            )
+                        )
+                    } else return fs.mkdir(path, options, preHandler)
+                }
+            )
         })
     }
 
@@ -868,34 +923,37 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.writeStream StorageManager.writeStream()}
      */
-    public static async writeFileStream(filePath: string, data: ArrayBuffer, chunkSize: number = 65536, cb?: (err?: Error | null) => void): Promise<boolean>
-    {
-        return new Promise((resolve, reject) =>
-        {
-            const parentPath = removeLastElement(filePath.split("/")).join("/")
-            StorageManager.mkdir(parentPath, { recursive: true }).then(
-                _ =>
-                {
-                    const wstream = fs.createWriteStream(filePath)
+    public static async writeFileStream(
+        filePath: string,
+        data: ArrayBuffer,
+        chunkSize: number = 65536,
+        cb?: (err?: Error | null) => void
+    ): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            const parentPath = removeLastElement(filePath.split('/')).join('/')
+            StorageManager.mkdir(parentPath, { recursive: true }).then(_ => {
+                const wstream = fs.createWriteStream(filePath)
 
-                    wstream.on("error", cb ?? reject)
+                wstream.on('error', cb ?? reject)
 
-                    for (let c = 0; c < data.byteLength; c += chunkSize) {
-                        const buffer = Buffer.from(data.slice(c, c + chunkSize))
-                        wstream.write(buffer, cb ?? (err =>
-                        {
-                            if (err) {
-                                wstream.end()
-                                reject(err)
-                            }
-                        }))
-                    }
+                for (let c = 0; c < data.byteLength; c += chunkSize) {
+                    const buffer = Buffer.from(data.slice(c, c + chunkSize))
+                    wstream.write(
+                        buffer,
+                        cb ??
+                            (err => {
+                                if (err) {
+                                    wstream.end()
+                                    reject(err)
+                                }
+                            })
+                    )
+                }
 
-                    wstream.end(cb)
+                wstream.end(cb)
 
-                    resolve(true)
-                },
-                reject)
+                resolve(true)
+            }, reject)
         })
     }
 
@@ -907,8 +965,7 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.readStream StorageManager.readStream()}
      */
-    public static async readStorage(filePath: string, out: Stream.Writable): Promise<void>
-    {
+    public static async readStorage(filePath: string, out: Stream.Writable): Promise<void> {
         let file = fs.createReadStream(filePath)
         file.on('open', () => file.pipe(out))
         file.on('error', err => out.end(err))
@@ -921,19 +978,27 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.getAsBuffers StorageManager.getAsBuffers()}
      */
-    public static async getFileContents(filePath: string, cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void): Promise<Buffer[]>
-    {
-        return new Promise((resolve: (data: Buffer[]) => any, reject) =>
-        {
-            let arr_buffer = new Array<Buffer>();
+    public static async getFileContents(
+        filePath: string,
+        cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void
+    ): Promise<Buffer[]> {
+        return new Promise((resolve: (data: Buffer[]) => any, reject) => {
+            let arr_buffer = new Array<Buffer>()
 
-            /* const wstream =  */StorageManager.readFileStream(filePath, {
-                write: (chunk: Buffer, _encoding: BufferEncoding, next: (err?: Error | null) => void) =>
+            /* const wstream =  */ StorageManager.readFileStream(
+                filePath,
                 {
-                    arr_buffer.push(chunk)
-                    next()
-                }
-            }, cb ?? ((err) => err ? reject(err) : resolve(arr_buffer)))
+                    write: (
+                        chunk: Buffer,
+                        _encoding: BufferEncoding,
+                        next: (err?: Error | null) => void
+                    ) => {
+                        arr_buffer.push(chunk)
+                        next()
+                    },
+                },
+                cb ?? (err => (err ? reject(err) : resolve(arr_buffer)))
+            )
 
             // wstream.on('close', () => cb? cb(null, arr_buffer) : resolve(arr_buffer))
         })
@@ -948,20 +1013,24 @@ export class StorageManager
      * @param opts options to setup the write stream.
      * @param cb optional callback to error handling (default `console.error` output stream).
      */
-    public static readFileStream(filePath: string, opts?: Stream.WritableOptions | Stream.Writable, cb?: (err?: Error | null) => void): Stream.Writable
-    {
+    public static readFileStream(
+        filePath: string,
+        opts?: Stream.WritableOptions | Stream.Writable,
+        cb?: (err?: Error | null) => void
+    ): Stream.Writable {
         const f = fs.createReadStream(filePath)
-        const tstream = !!((opts as Stream.Writable)?.writable) ? opts as Stream.Writable : new Stream.Writable(opts as Stream.WritableOptions)
+        const tstream = !!(opts as Stream.Writable)?.writable
+            ? (opts as Stream.Writable)
+            : new Stream.Writable(opts as Stream.WritableOptions)
 
-        f.on('error', err =>
-        {
+        f.on('error', err => {
             tstream.end()
             cb ? cb(err) : console.error(err)
         })
 
         f.on('close', () => tstream.end())
 
-        Stream.pipeline(f, tstream, cb ?? (err => !!err ? console.error : null))
+        Stream.pipeline(f, tstream, cb ?? (err => (!!err ? console.error : null)))
         return tstream
     }
 
@@ -971,35 +1040,38 @@ export class StorageManager
      * @param callback Optional callback called after delete operation is finished.
      * @returns A promise of the delete operation.
      */
-    public static async deleteFromStorage(filePath: string, callback?: (err: NodeJS.ErrnoException | null) => void | any): Promise<void>
-    {
-        return new Promise(async (resolve, reject) =>
-        {
+    public static async deleteFromStorage(
+        filePath: string,
+        callback?: (err: NodeJS.ErrnoException | null) => void | any
+    ): Promise<void> {
+        return new Promise(async (resolve, reject) => {
             const metadata = await StorageManager.stats(filePath)
             if (metadata.isFile() || metadata.isSymbolicLink())
-                fs.unlink(filePath, callback ?? (err => err ? reject(err) : resolve()))
+                fs.unlink(filePath, callback ?? (err => (err ? reject(err) : resolve())))
             else if (metadata.isDirectory()) {
-                if (lt(process.versions.node, "12.10.0 ")) {
+                if (lt(process.versions.node, '12.10.0 ')) {
                     const dir = await StorageManager.listDirectory(filePath, true)
 
-                    const files = Array.from(dir)
-                        .filter((file): file is string => typeof file === "string")
+                    const files = Array.from(dir).filter(
+                        (file): file is string => typeof file === 'string'
+                    )
 
-                    const innerDirs = Array.from(dir)
-                        .filter((file): file is DirectoryList => file instanceof DirectoryList)
+                    const innerDirs = Array.from(dir).filter(
+                        (file): file is DirectoryList => file instanceof DirectoryList
+                    )
 
+                    for (const file of files) await StorageManager.deleteFromStorage(file)
+                    for (const { name } of innerDirs) await StorageManager.deleteFromStorage(name)
 
-                    for (const file of files)
-                        await StorageManager.deleteFromStorage(file)
-                    for (const { name } of innerDirs)
-                        await StorageManager.deleteFromStorage(name)
-
-                    fs.rmdir(filePath, callback ?? (err => err ? reject(err) : resolve()))
+                    fs.rmdir(filePath, callback ?? (err => (err ? reject(err) : resolve())))
                 } else {
-                    fs.rmdir(filePath, { recursive: true }, callback ?? (err => err ? reject(err) : resolve()))
+                    fs.rmdir(
+                        filePath,
+                        { recursive: true },
+                        callback ?? (err => (err ? reject(err) : resolve()))
+                    )
                 }
             }
-
         })
     }
 
@@ -1019,29 +1091,25 @@ export class StorageManager
      *
      * @deprecated @see {@link StorageManager.stats StorageManager.stats()}
      */
-    public static async openFileOrDirectory(path: string,
+    public static async openFileOrDirectory(
+        path: string,
         ifFile?: (err: NodeJS.ErrnoException | null, data: string) => void,
         ifDir?: (err: NodeJS.ErrnoException | null, files: string[]) => void,
-        encoding: BufferEncoding = "utf-8")
-    {
-        fs.access(path as string, fs.constants.F_OK | fs.constants.R_OK, (err) =>
-        {
-            if (err) throw ({ message: "no such file or directory!", path: path });
+        encoding: BufferEncoding = 'utf-8'
+    ) {
+        fs.access(path as string, fs.constants.F_OK | fs.constants.R_OK, err => {
+            if (err) throw { message: 'no such file or directory!', path: path }
             else
-                fs.lstat(path as string, (err, stats) =>
-                {
+                fs.lstat(path as string, (err, stats) => {
                     if (err) {
                         console.log(err)
                         throw err
-                    }
-                    else if (stats.isFile())
-                        fs.readFile(path, { encoding }, (ifFile ?? (() => null)))
-                    else if (stats.isDirectory())
-                        fs.readdir(path as string, (ifDir ?? (() => null)))
-                    else
-                        throw ({ message: `operation not supported! (${path})` })
-                });
-        });
+                    } else if (stats.isFile())
+                        fs.readFile(path, { encoding }, ifFile ?? (() => null))
+                    else if (stats.isDirectory()) fs.readdir(path as string, ifDir ?? (() => null))
+                    else throw { message: `operation not supported! (${path})` }
+                })
+        })
     }
 }
 
