@@ -1,6 +1,7 @@
-import { TypeOfTag } from 'typescript'
-import { basename } from 'path'
-import { Stats } from 'fs'
+import { Stats } from 'node:fs'
+import { basename } from 'node:path'
+
+import { TypeOfTag } from './types/TypeOfTag'
 
 export type RecursiveType<T> = T | RecursiveType<T>[]
 

@@ -7,3 +7,8 @@ docs
 /package-lock.json
 /dir0
 .gitlab-ci.yml
+.gitignore
+.prettierignore
+.prettierrc.*
+tsconfig.json
+typedoc.json

@@ -1,16 +1,18 @@
-import fs from 'fs'
-import os from 'os'
-import Stream from 'stream'
-import Path, { join, basename, dirname } from 'path'
+import fs from 'node:fs'
+import os from 'node:os'
+import Path, { basename, dirname, join } from 'node:path'
+import Stream from 'node:stream'
+
+import { lt } from 'semver'
+
+import { DirectoryList } from './DirectoryList'
 import {
     IgnoreUnionType,
     isAsyncIterable,
     isIterable,
-    removeLastElement,
     LogicGates,
+    removeLastElement,
 } from './utils'
-import { lt } from 'semver'
-import { DirectoryList } from './DirectoryList'
 
 /** Read mode */
 type ReadMode = 'r'
