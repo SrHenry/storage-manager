@@ -19,8 +19,11 @@
         "fs",
         "stream"
     ],
-    "author": "SrHenry",
-    "license": "MIT",
+  "author": "SrHenry",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
+  },
   "dependencies": {
     "semver": "^7.8.1"
   },
