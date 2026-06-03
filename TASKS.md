@@ -97,7 +97,7 @@
     - **Files**: `package.json`, `.husky/pre-commit`, `.github/workflows/ci.yml`
     - **Acceptance**: `yarn circular-dependencies` runs and reports zero cycles
 
-- [ ] Clean up stale `feat/update-dependencies-and-node-support` branch
+- [x] Clean up stale `feat/update-dependencies-and-node-support` branch
     - **ID**: cleanup-stale-branch
     - **Blocked by**: update-deps
     - **Details**: The dependency bumps from that branch are already on `developer`. Delete the branch from local and all remotes
