@@ -49,7 +49,7 @@ type FileStreamOptionsType<T extends FileStreamMode> = T extends ReadMode
 /** fs Stream options supported in read mode */
 type NodeJS_fsReadOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
 /** fs Stream options supported in write mode */
-type NodeJS_fsWriteOptions = IgnoreUnionType<Parameters<typeof fs.createReadStream>[1], string>
+type NodeJS_fsWriteOptions = IgnoreUnionType<Parameters<typeof fs.createWriteStream>[1], string>
 /** fs Stream options supported in duplex mode */
 type NodeJS_fsDuplexOptions = {
     readOptions?: IgnoreUnionType<NodeJS_fsReadOptions, string> | null
@@ -532,29 +532,29 @@ export class StorageManager {
         fsOptions = fsOptions ?? {}
 
         switch (mode ?? 'rw') {
-            case 'r':
-                return fs.createReadStream(path, {
-                    ...options,
-                    ...fsOptions,
-                })
-                break
-            case 'w':
-                return fs.createWriteStream(path, {
-                    ...options,
-                    ...fsOptions,
-                })
-                break
+        case 'r':
+            return fs.createReadStream(path, {
+                ...options,
+                ...fsOptions,
+            } as Parameters<typeof fs.createReadStream>[1])
+            break
+        case 'w':
+            return fs.createWriteStream(path, {
+                ...options,
+                ...fsOptions,
+            } as Parameters<typeof fs.createWriteStream>[1])
+            break
             case 'rw':
-                const [r, w] = [
-                    fs.createReadStream(path, {
-                        ...options,
-                        ...(fsOptions as NodeJS_fsDuplexOptions)?.readOptions,
-                    }),
-                    fs.createWriteStream(path, {
-                        ...options,
-                        ...(fsOptions as NodeJS_fsDuplexOptions)?.writeOptions,
-                    }),
-                ]
+            const [r, w] = [
+                fs.createReadStream(path, {
+                    ...options,
+                    ...(fsOptions as NodeJS_fsDuplexOptions)?.readOptions,
+                } as Parameters<typeof fs.createReadStream>[1]),
+                fs.createWriteStream(path, {
+                    ...options,
+                    ...(fsOptions as NodeJS_fsDuplexOptions)?.writeOptions,
+                } as Parameters<typeof fs.createWriteStream>[1]),
+            ]
 
                 const streamOptions: FileStreamOptionsType<typeof mode> = {
                     read: r.read.bind(r),
@@ -849,7 +849,7 @@ export class StorageManager {
         f: ArrayBuffer | SharedArrayBuffer | Uint8Array,
         encoding: BufferEncoding = 'binary'
     ): Promise<void> {
-        let buffer = Buffer.from(f)
+        let buffer = Buffer.from(f as Uint8Array<ArrayBuffer>)
 
         // removeLastElement(filePath.split("/"))
 
@@ -1067,11 +1067,11 @@ export class StorageManager {
 
                     fs.rmdir(filePath, callback ?? (err => (err ? reject(err) : resolve())))
                 } else {
-                    fs.rmdir(
-                        filePath,
-                        { recursive: true },
-                        callback ?? (err => (err ? reject(err) : resolve()))
-                    )
+            fs.rm(
+                filePath,
+                { recursive: true, force: true },
+                callback ?? (err => (err ? reject(err) : resolve()))
+            )
                 }
             }
         })
