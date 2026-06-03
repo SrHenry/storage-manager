@@ -68,11 +68,18 @@
     - **Acceptance**: Written proposal comparing approaches with pros/cons, backward-compatibility analysis, and recommendation
 
 - [ ] Rethink capabilities: missing filesystem operations
-    - **ID**: rethink-capabilities
-    - **Blocked by**: rethink-api-design
-    - **Details**: Identify gaps vs `fs-extra`, `graceful-fs`, and native `node:fs/promises`. Candidates: `chmod`/`chown`, `symlink`/`readlink`/`lstat` (exposed), `watch`/`watchFile`, `tmpdir`/`mkdtemp`, `glob`-style listing, atomic writes, retry/error-handling wrappers. Prioritize by user demand and API fit. This task is design-only — produce a feature wish list with priority
-    - **Files**: Proposal document (e.g. `docs/feature-wishlist.md` or ADR)
-    - **Acceptance**: Prioritized list of new capabilities with rationale and complexity estimates
+- **ID**: rethink-capabilities
+- **Blocked by**: rethink-api-design
+- **Details**: Identify gaps vs `fs-extra`, `graceful-fs`, and native `node:fs/promises`. Candidates: `chmod`/`chown`, `symlink`/`readlink`/`lstat` (exposed), `watch`/`watchFile`, `tmpdir`/`mkdtemp`, `glob`-style listing, atomic writes, retry/error-handling wrappers. Prioritize by user demand and API fit. This task is design-only — produce a feature wish list with priority
+- **Files**: Proposal document (e.g. `docs/feature-wishlist.md` or ADR)
+- **Acceptance**: Prioritized list of new capabilities with rationale and complexity estimates
+
+- [ ] Add Bun and Deno runtime support with native fs API selection
+- **ID**: multi-runtime-fs
+- **Blocked by**: refactor-split-modules, rethink-api-design
+- **Details**: Currently all filesystem operations use `node:fs`/`node:fs/promises`. Add runtime-aware API selection so that when running under Bun or Deno, their native fs APIs are used instead (e.g. `Bun.file()`/`Bun.write()`, `Deno.open()`/`Deno.readDir()`/`Deno.stat()`). Detect runtime at load time via `typeof Bun !== 'undefined'` / `typeof Deno !== 'undefined'` and select the appropriate adapter. Create a unified `FsAdapter` interface that each runtime implements, with Node.js as the default/fallback. This enables better performance and native API alignment on non-Node runtimes while keeping full Node.js compatibility. Update `engines` in `package.json` to also list Bun and Deno version constraints
+- **Files**: `src/adapters/**/*.ts`, `src/StorageManager.ts`, `package.json`
+- **Acceptance**: `StorageManager.*` API unchanged from consumer perspective; under Node.js, behavior is identical to current; under Bun/Deno, native fs APIs are used; `yarn test` passes on all three runtimes
 
 ## P3 — Low
 
@@ -97,7 +104,7 @@
     - **Files**: N/A (git branch operations)
     - **Acceptance**: `git branch -a` no longer lists `feat/update-dependencies-and-node-support`
 
-- [ ] Clean up uncommitted working-tree changes
+- [x] Clean up uncommitted working-tree changes
     - **ID**: cleanup-working-tree
     - **Details**: `.npmignore`, `src/DirectoryList.ts`, `src/StorageManager.ts` have unstaged changes from the stale branch (node: prefixed imports, re-ordered imports, expanded `.npmignore`). These are already in the compiled output on `developer`. Decide: commit or discard
     - **Files**: `.npmignore`, `src/DirectoryList.ts`, `src/StorageManager.ts`
