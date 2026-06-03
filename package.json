@@ -9,7 +9,13 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "npx tsc",
-        "docs": "npx typedoc"
+        "docs": "npx typedoc",
+        "lint": "biome lint ./src",
+        "lint:fix": "biome lint --write ./src",
+        "format": "prettier --check \"src/**/*.ts\"",
+        "format:fix": "prettier --write \"src/**/*.ts\"",
+        "qa": "biome lint ./src && prettier --check \"src/**/*.ts\"",
+        "qa:fix": "biome lint --write ./src && prettier --write \"src/**/*.ts\""
     },
     "keywords": [
         "filesystem",
@@ -19,20 +25,22 @@
         "fs",
         "stream"
     ],
-  "author": "SrHenry",
-  "license": "MIT",
-  "engines": {
-    "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
-  },
-  "dependencies": {
-    "semver": "^7.8.1"
-  },
-  "devDependencies": {
-    "@types/node": ">=24.0.0",
-    "@types/semver": "^7.7.1",
-    "typedoc": "^0.28.19",
-    "typescript": "^6.0.3"
-  },
+    "author": "SrHenry",
+    "license": "MIT",
+    "engines": {
+        "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
+    },
+    "dependencies": {
+        "semver": "^7.8.1"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.4.16",
+        "@types/node": ">=24.0.0",
+        "@types/semver": "^7.7.1",
+        "prettier": "^3.8.3",
+        "typedoc": "^0.28.19",
+        "typescript": "^6.0.3"
+    },
     "files": [
         "*.js",
         "*.d.ts"

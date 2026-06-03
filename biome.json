@@ -1,0 +1,163 @@
+{
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "files": {
+        "ignoreUnknown": true,
+        "includes": [
+            "src/**",
+            "!!node_modules",
+            "!!coverage",
+            "!!docs",
+            "!!**/*.draft.*",
+            "!!**/*.draft"
+        ]
+    },
+    "formatter": {
+        "enabled": false
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "a11y": "off",
+            "complexity": {
+                "recommended": true,
+                "noBannedTypes": "warn",
+                "noEmptyTypeParameters": "error",
+                "noExcessiveCognitiveComplexity": {
+                    "level": "warn",
+                    "options": {
+                        "maxAllowedComplexity": 20
+                    }
+                },
+                "noForEach": "off",
+                "noStaticOnlyClass": "off",
+                "useLiteralKeys": "off",
+                "noUselessTypeConstraint": "error",
+                "useOptionalChain": "error",
+                "useSimplifiedLogicExpression": "warn"
+            },
+            "correctness": {
+                "recommended": true,
+                "noConstAssign": "error",
+                "noEmptyPattern": "error",
+                "noInvalidUseBeforeDeclaration": "error",
+                "noPrecisionLoss": "error",
+                "noSelfAssign": "error",
+                "noSwitchDeclarations": "error",
+                "noUnreachable": "error",
+                "noUnsafeOptionalChaining": "error",
+                "noUnusedFunctionParameters": {
+                    "level": "warn",
+                    "fix": "unsafe"
+                },
+                "noUnusedImports": "error",
+                "noUnusedPrivateClassMembers": "error",
+                "noUnusedVariables": "error",
+                "noVoidTypeReturn": "error",
+                "useIsNan": "error",
+                "useValidTypeof": "error",
+                "useYield": "error"
+            },
+            "nursery": {
+                "recommended": false,
+                "noShadow": "warn",
+                "noUnnecessaryConditions": "warn",
+                "noUnnecessaryTemplateExpression": "warn",
+                "noUselessTypeConversion": "warn",
+                "useExhaustiveSwitchCases": "warn",
+                "useExplicitReturnType": "off",
+                "useReduceTypeParameter": "warn"
+            },
+            "performance": {
+                "recommended": true,
+                "noAccumulatingSpread": "warn",
+                "noDelete": "warn"
+            },
+            "security": {
+                "recommended": true,
+                "noGlobalEval": "error",
+                "noSecrets": "warn"
+            },
+            "style": {
+                "recommended": true,
+                "noDefaultExport": "off",
+                "noEnum": "error",
+                "noInferrableTypes": "error",
+                "noNamespace": "off",
+                "noNonNullAssertion": "warn",
+                "useAsConstAssertion": "error",
+                "useConst": "error",
+                "useConsistentArrayType": {
+                    "level": "warn",
+                    "options": {
+                        "syntax": "shorthand"
+                    }
+                },
+                "useConsistentTypeDefinitions": "off",
+                "useDefaultParameterLast": "error",
+                "useExportType": "warn",
+                "useImportType": {
+                    "level": "warn",
+                    "options": {
+                        "style": "auto"
+                    }
+                },
+                "useReadonlyClassProperties": "warn",
+                "useShorthandFunctionType": "error",
+                "useThrowNewError": "warn",
+                "useThrowOnlyError": "warn",
+                "useUnifiedTypeSignatures": "off"
+            },
+            "suspicious": {
+                "recommended": true,
+                "noApproximativeNumericConstant": "warn",
+                "noAssignInExpressions": "error",
+                "noConfusingVoidType": "error",
+                "noConstEnum": "error",
+                "noControlCharactersInRegex": "error",
+                "noDebugger": "error",
+                "noExplicitAny": "warn",
+                "noFallthroughSwitchClause": "error",
+                "noMisleadingInstantiator": "error",
+                "noRedeclare": "error"
+            }
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["src/StorageManager.ts"],
+            "linter": {
+                "rules": {
+                    "complexity": {
+                        "noExcessiveCognitiveComplexity": {
+                            "level": "warn",
+                            "options": {
+                                "maxAllowedComplexity": 30
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["**/*.spec.ts", "**/__tests__/**"],
+            "linter": {
+                "rules": {
+                    "complexity": {
+                        "noExcessiveCognitiveComplexity": "off"
+                    },
+                    "security": {
+                        "noSecrets": "off"
+                    },
+                    "suspicious": {
+                        "noExplicitAny": "off",
+                        "noDebugger": "off"
+                    },
+                    "style": {
+                        "noNonNullAssertion": "off"
+                    }
+                }
+            }
+        }
+    ]
+}

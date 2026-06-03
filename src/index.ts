@@ -1,7 +1,7 @@
-import { StorageManager } from "./StorageManager"
+import { StorageManager } from './StorageManager'
 
-export { StorageManager } from "./StorageManager"
-export { DirectoryList } from "./DirectoryList"
+export { StorageManager } from './StorageManager'
+export { DirectoryList } from './DirectoryList'
 
 export const {
     constants,

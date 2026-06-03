@@ -17,7 +17,7 @@ export class DirectoryList {
     // private struct: RecursiveType<string>[]
     private struct: Array<string | DirectoryList>
 
-    private _name: string = ''
+    private _name = ''
     private _stats?: Stats
 
     public get name() {
@@ -61,22 +61,24 @@ export class DirectoryList {
         for (const item of this.struct) yield item
     }
 
-    public [Symbol.toPrimitive](hint: TypeOfTag): string | void {
+    public [Symbol.toPrimitive](hint: TypeOfTag): string | undefined {
         switch (hint) {
             case 'string':
                 return this.__toString()
+            default:
+                return undefined
         }
     }
 
-    private __toString(deep: number = 0, traceChar = ' ', padUnit = 4) {
+    private __toString(deep = 0, traceChar = ' ', padUnit = 4) {
         const directoriesFirst = this.struct.sort((a, b) =>
             a instanceof DirectoryList
                 ? b instanceof DirectoryList
                     ? 0
                     : -1
                 : b instanceof DirectoryList
-                ? 1
-                : 0
+                  ? 1
+                  : 0
         )
         let str = `DirectoryList: ${deep > 0 ? basename(this.name) : this.name} {\n`
 
@@ -85,7 +87,7 @@ export class DirectoryList {
         for (const row of directoriesFirst) {
             if (row instanceof DirectoryList) str += row.__toString(deep + 1, traceChar, padUnit)
             else {
-                let out = `File: ${row}\n`
+                const out = `File: ${row}\n`
                 str += out.padStart(out.length + (deep + 1) * padUnit, traceChar)
             }
         }
