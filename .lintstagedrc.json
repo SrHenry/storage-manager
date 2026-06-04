@@ -1,0 +1,4 @@
+{
+    "src/**/*.ts": ["biome lint --write", "prettier --write"],
+    "*.{yml,yaml,json}": ["prettier --check"]
+}
