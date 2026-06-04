@@ -55,6 +55,7 @@ If the request is vague or ambiguous: ask targeted questions. Better to over-cla
 | `yarn format:fix`    | Prettier write                                 |
 | `yarn qa`            | Biome lint + Prettier check                    |
 | `yarn qa:fix`        | Biome lint --write + Prettier write            |
+| `yarn prepare`       | Install Husky git hooks                        |
 | `npx tsc --noEmit`   | Typecheck only (no emit)                       |
 
 No watch mode configured. Re-run `yarn build` after changes.
@@ -103,6 +104,13 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 Do not use or extend these — they are legacy:
 
 `checkExist`, `writeFileStream`, `writeStorage`, `readStorage`, `getFileContents`, `readFileStream`, `openFileOrDirectory`
+
+### Pre-commit hooks
+
+- Husky + lint-staged runs on every commit
+- `src/**/*.ts` → Biome lint --write + Prettier --write (auto-fix)
+- `*.{yml,yaml,json}` → Prettier --check (blocks if malformed)
+- Typecheck and test are NOT in the hook — deferred to CI
 
 ### Commit Style
 

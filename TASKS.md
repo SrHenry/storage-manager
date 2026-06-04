@@ -23,7 +23,7 @@
 - **Files**: `vitest.config.ts`, `package.json`, `src/**/__tests__/*.spec.ts`
 - **Acceptance**: `yarn test` runs and all smoke tests pass; `yarn test:coverage` produces a coverage report
 
-- [ ] Add pre-commit hooks (Husky + lint-staged)
+- [x] Add pre-commit hooks (Husky + lint-staged)
 - **ID**: add-precommit-hooks
 - **Blocked by**: ~~add-biome~~ (done), ~~add-vitest~~ (done)
     - **Details**: Install Husky + lint-staged. Hook runs `check:fix → test` on staged `.ts` / config files. Configure `lint-staged` to run Biome lint:fix + Prettier format:fix on `src/**/*.ts`, and Prettier check on `*.{yml,yaml,json}`. Add `prepare` script to `package.json`
