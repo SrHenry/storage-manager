@@ -4,24 +4,24 @@
 
 ## P1 — High
 
-- [ ] Update dependencies (semver, @types/node, @types/semver, typedoc, typescript)
-    - **ID**: update-deps
-    - **Details**: The stale `feat/update-dependencies-and-node-support` branch already attempted this (tsconfig, package.json, yarn.lock). The dependency bumps in that branch are already on `developer` — verify no regressions, then discard the stale branch
-    - **Files**: `package.json`, `yarn.lock`, `tsconfig.json`
-    - **Acceptance**: `yarn install` + `yarn build` + `npx tsc --noEmit` all pass with latest versions
+- [x] Update dependencies (semver, @types/node, @types/semver, typedoc, typescript)
+- **ID**: update-deps
+- **Details**: The stale `feat/update-dependencies-and-node-support` branch already attempted this (tsconfig, package.json, yarn.lock). The dependency bumps in that branch are already on `developer` — verify no regressions, then discard the stale branch
+- **Files**: `package.json`, `yarn.lock`, `tsconfig.json`
+- **Acceptance**: `yarn install` + `yarn build` + `npx tsc --noEmit` all pass with latest versions
 
-- [ ] Add Biome linting + replace Prettier with Biome formatting
-    - **ID**: add-biome
-    - **Details**: Follow the pattern from `@srhenry/type-utils` — Biome for lint (no formatting), Prettier for formatting. Configure `biome.json` with rules matching sibling repo conventions (no enums, `noExplicitAny: warn`, `useImportType: warn`, `noNonNullAssertion: warn`). Add `yarn check`, `yarn check:fix`, `yarn lint`, `yarn lint:fix`, `yarn format`, `yarn format:fix` scripts
-    - **Files**: `biome.json`, `package.json`, `src/**/*.ts`
-    - **Acceptance**: `yarn check` passes clean on existing code (existing `any` / non-null assertions may stay as `warn`); `yarn format:fix` reformats all files per Prettier config
+- [x] Add Biome linting + replace Prettier with Biome formatting
+- **ID**: add-biome
+- **Details**: Follow the pattern from `@srhenry/type-utils` — Biome for lint (no formatting), Prettier for formatting. Configure `biome.json` with rules matching sibling repo conventions (no enums, `noExplicitAny: warn`, `useImportType: warn`, `noNonNullAssertion: warn`). Add `yarn check`, `yarn check:fix`, `yarn lint`, `yarn lint:fix`, `yarn format`, `yarn format:fix` scripts
+- **Files**: `biome.json`, `package.json`, `src/**/*.ts`
+- **Acceptance**: `yarn check` passes clean on existing code (existing `any` / non-null assertions may stay as `warn`); `yarn format:fix` reformats all files per Prettier config
 
 - [ ] Add Vitest test framework
-    - **ID**: add-vitest
-    - **Blocked by**: add-biome
-    - **Details**: Install Vitest, create `vitest.config.ts`, add `yarn test` and `yarn test:coverage` scripts. Write initial smoke tests for core methods (`put`, `get`, `append`, `exists`, `mkdir`, `delete`, `copy`, `move`, `rename`, `listDirectory`, `stats`, `isFile`, `isDirectory`, `fileStream`). Use `os.tmpdir()` + random subdirs for fixtures; clean up after each test
-    - **Files**: `vitest.config.ts`, `package.json`, `__tests__/**/*.spec.ts`
-    - **Acceptance**: `yarn test` runs and all smoke tests pass; `yarn test:coverage` produces a coverage report
+- **ID**: add-vitest
+- **Blocked by**: ~~add-biome~~ (done)
+- **Details**: Install Vitest, create `vitest.config.ts`, add `yarn test` and `yarn test:coverage` scripts. Write initial smoke tests for core methods (`put`, `get`, `append`, `exists`, `mkdir`, `delete`, `copy`, `move`, `rename`, `listDirectory`, `stats`, `isFile`, `isDirectory`, `fileStream`). Use `os.tmpdir()` + random subdirs for fixtures; clean up after each test
+- **Files**: `vitest.config.ts`, `package.json`, `__tests__/**/*.spec.ts`
+- **Acceptance**: `yarn test` runs and all smoke tests pass; `yarn test:coverage` produces a coverage report
 
 - [ ] Add pre-commit hooks (Husky + lint-staged)
     - **ID**: add-precommit-hooks
@@ -83,12 +83,12 @@
 
 ## P3 — Low
 
-- [ ] Add GitHub Actions CI workflow
-    - **ID**: add-ci
-    - **Blocked by**: add-biome, add-vitest, dual-build
-    - **Details**: Create `.github/workflows/ci.yml` that runs typecheck, lint, test, and build on PRs to `developer` and `master`. Follow the pattern from `@srhenry/type-utils`
-    - **Files**: `.github/workflows/ci.yml`
-    - **Acceptance**: CI runs on PRs and reports status; all checks pass on a clean branch
+- [x] Add GitHub Actions CI/CD workflows
+- **ID**: add-ci-cd
+- **Blocked by**: ~~add-biome~~ (done)
+- **Details**: Create `.github/workflows/ci.yml` (typecheck, lint, build on PRs), `.github/workflows/typedoc-github-pages.yml` (deploy docs on master push), and `.github/workflows/publish-npm.yml` (publish to npm on GitHub Release). Follow the pattern from `@srhenry/type-utils`. Adapt script names: `yarn qa` instead of `yarn check`, `yarn build` instead of `yarn build:clean`. Skip `circular-dependencies` and `test` steps in CI until those are available
+- **Files**: `.github/workflows/ci.yml`, `.github/workflows/typedoc-github-pages.yml`, `.github/workflows/publish-npm.yml`
+- **Acceptance**: CI runs on PRs and reports status; publish-npm.yml triggers on GitHub Release; TypeDoc deploys on master push
 
 - [ ] Add circular dependency checking (madge)
     - **ID**: add-madge
