@@ -16,7 +16,8 @@
         "format": "prettier --check \"src/**/*.ts\"",
         "format:fix": "prettier --write \"src/**/*.ts\"",
         "qa": "biome lint ./src && prettier --check \"src/**/*.ts\"",
-        "qa:fix": "biome lint --write ./src && prettier --write \"src/**/*.ts\""
+        "qa:fix": "biome lint --write ./src && prettier --write \"src/**/*.ts\"",
+        "prepare": "husky"
     },
     "keywords": [
         "filesystem",
