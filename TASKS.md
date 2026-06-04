@@ -26,9 +26,9 @@
 - [x] Add pre-commit hooks (Husky + lint-staged)
 - **ID**: add-precommit-hooks
 - **Blocked by**: ~~add-biome~~ (done), ~~add-vitest~~ (done)
-    - **Details**: Install Husky + lint-staged. Hook runs `check:fix → test` on staged `.ts` / config files. Configure `lint-staged` to run Biome lint:fix + Prettier format:fix on `src/**/*.ts`, and Prettier check on `*.{yml,yaml,json}`. Add `prepare` script to `package.json`
-    - **Files**: `package.json`, `.husky/pre-commit`, `.lintstagedrc.json`
-    - **Acceptance**: Committing a `.ts` file triggers lint + format + typecheck + test; hook reformats files in-place when needed
+- **Details**: Install Husky + lint-staged. Hook runs `biome lint --write` + `prettier --write` on staged `src/**/*.ts`, and `prettier --check` on `*.{yml,yaml,json}`. Typecheck and test deferred to CI. Add `prepare` script to `package.json`
+- **Files**: `package.json`, `.husky/pre-commit`, `.lintstagedrc.json`
+- **Acceptance**: Committing a `.ts` file triggers lint + format (auto-fix); committing a malformed `.yml`/`.json` blocks; typecheck and test not in the hook
 
 - [ ] Add dual ESM + CJS build
 - **ID**: dual-build
