@@ -1,0 +1,44 @@
+name: CI
+
+on:
+    pull_request:
+        branches: ['developer', 'master']
+
+permissions:
+    contents: read
+
+jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  cache: yarn
+
+            - name: Ensure Yarn 1.x
+              run: |
+                  corepack enable
+                  corepack prepare yarn@1 --activate
+                  YARN_VERSION=$(yarn --version)
+                  echo "Yarn version: $YARN_VERSION"
+                  if ! echo "$YARN_VERSION" | grep -qE '^1\.'; then
+                    echo "::error::Expected Yarn 1.x but got $YARN_VERSION. Aborting."
+                    exit 1
+                  fi
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Typecheck
+              run: npx tsc --noEmit
+
+            - name: Lint and format
+              run: yarn qa
+
+            - name: Build
+              run: yarn build
