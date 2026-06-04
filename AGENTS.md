@@ -109,7 +109,7 @@ Do not use or extend these — they are legacy:
 
 - Husky + lint-staged runs on every commit
 - `src/**/*.ts` → Biome lint --write + Prettier --write (auto-fix)
-- `*.{yml,yaml,json}` → Prettier --check (blocks if malformed)
+- `*.{yml,yaml,json}` → Prettier --check (blocks if malformed, no auto-fix — including `package.json`)
 - Typecheck and test are NOT in the hook — deferred to CI
 
 ### Commit Style
