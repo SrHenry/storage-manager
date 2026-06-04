@@ -16,23 +16,23 @@
 - **Files**: `biome.json`, `package.json`, `src/**/*.ts`
 - **Acceptance**: `yarn check` passes clean on existing code (existing `any` / non-null assertions may stay as `warn`); `yarn format:fix` reformats all files per Prettier config
 
-- [ ] Add Vitest test framework
+- [x] Add Vitest test framework
 - **ID**: add-vitest
 - **Blocked by**: ~~add-biome~~ (done)
 - **Details**: Install Vitest, create `vitest.config.ts`, add `yarn test` and `yarn test:coverage` scripts. Write initial smoke tests for core methods (`put`, `get`, `append`, `exists`, `mkdir`, `delete`, `copy`, `move`, `rename`, `listDirectory`, `stats`, `isFile`, `isDirectory`, `fileStream`). Use `os.tmpdir()` + random subdirs for fixtures; clean up after each test
-- **Files**: `vitest.config.ts`, `package.json`, `__tests__/**/*.spec.ts`
+- **Files**: `vitest.config.ts`, `package.json`, `src/**/__tests__/*.spec.ts`
 - **Acceptance**: `yarn test` runs and all smoke tests pass; `yarn test:coverage` produces a coverage report
 
 - [ ] Add pre-commit hooks (Husky + lint-staged)
-    - **ID**: add-precommit-hooks
-    - **Blocked by**: add-biome, add-vitest
+- **ID**: add-precommit-hooks
+- **Blocked by**: ~~add-biome~~ (done), ~~add-vitest~~ (done)
     - **Details**: Install Husky + lint-staged. Hook runs `check:fix → test` on staged `.ts` / config files. Configure `lint-staged` to run Biome lint:fix + Prettier format:fix on `src/**/*.ts`, and Prettier check on `*.{yml,yaml,json}`. Add `prepare` script to `package.json`
     - **Files**: `package.json`, `.husky/pre-commit`, `.lintstagedrc.json`
     - **Acceptance**: Committing a `.ts` file triggers lint + format + typecheck + test; hook reformats files in-place when needed
 
 - [ ] Add dual ESM + CJS build
-    - **ID**: dual-build
-    - **Blocked by**: add-biome, add-vitest
+- **ID**: dual-build
+- **Blocked by**: ~~add-biome~~ (done), ~~add-vitest~~ (done)
     - **Details**: Follow the pattern from `@srhenry/type-utils`. Switch `"type": "module"` in package.json. Create `tsconfig.json` (base), `tsconfig.cjs.json` (CJS emit to `dist/cjs/`), `tsconfig.esm.json` (ESM emit to `dist/esm/`). Update `package.json` `exports` map with `import`/`require` conditions. Add `yarn build:clean` script. May need a `scripts/fix-declarations.mjs` step to rewrite `.ts` → `.js` extensions in `.d.ts` files for ESM
     - **Files**: `tsconfig.json`, `tsconfig.cjs.json`, `tsconfig.esm.json`, `package.json`, `scripts/fix-declarations.mjs`
     - **Acceptance**: `yarn build` produces both ESM and CJS outputs; `yarn test` passes; consumers can `import` (ESM) and `require` (CJS) the package
@@ -40,8 +40,7 @@
 ## P2 — Medium
 
 - [ ] Remove deprecated methods
-    - **ID**: remove-deprecated
-    - **Blocked by**: add-vitest
+- **Blocked by**: ~~add-vitest~~ (done)
     - **Details**: Remove `checkExist`, `writeFileStream`, `writeStorage`, `readStorage`, `getFileContents`, `readFileStream`, `openFileOrDirectory` from `StorageManager.ts` and their re-exports in `src/index.ts`. Ensure no internal code paths depend on them (they don't — they're self-contained legacy). This is a breaking change → bump major version
     - **Files**: `src/StorageManager.ts`, `src/index.ts`
     - **Acceptance**: Deprecated methods are gone; `yarn build` + `yarn test` pass; no references to removed methods remain

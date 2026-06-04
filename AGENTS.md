@@ -4,10 +4,10 @@
 
 ### Classify every request before acting
 
-| Category | Examples | Workflow |
-|----------|----------|----------|
-| **CODE-PRODUCING** | Features, fixes, refactors, deprecations, breaking changes | Strict — follow PR Workflow below |
-| **EXPLORATORY** | Questions, debugging, codebase navigation, code review | Loose — respond conversationally, use search/read tools freely |
+| Category           | Examples                                                   | Workflow                                                       |
+| ------------------ | ---------------------------------------------------------- | -------------------------------------------------------------- |
+| **CODE-PRODUCING** | Features, fixes, refactors, deprecations, breaking changes | Strict — follow PR Workflow below                              |
+| **EXPLORATORY**    | Questions, debugging, codebase navigation, code review     | Loose — respond conversationally, use search/read tools freely |
 
 ### CODE-PRODUCING: scope gate
 
@@ -15,9 +15,9 @@ Do **NOT** create branches, worktrees, or write code until all of the following 
 
 1. **Worktree required** — all code-producing work must happen in an ephemeral worktree (`/tmp/<repo-name>-<topic>`), **never** in the main repo checkout. The user may explicitly opt out (e.g. "work in the main checkout" or "no worktree") — but you must never assume this; always use a worktree unless told otherwise
 2. **Base branch** — which branch to target:
-   - `developer` for features, refactors, and non-urgent changes (default)
-   - `master` for hotfixes and urgent production fixes
-   - If the user requests a different base, analyze the case against industry standard practices and question the user before proceeding
+    - `developer` for features, refactors, and non-urgent changes (default)
+    - `master` for hotfixes and urgent production fixes
+    - If the user requests a different base, analyze the case against industry standard practices and question the user before proceeding
 3. **Related issues** — GitHub/GitLab issue numbers, URLs, or external references (or explicitly "none")
 4. **Scope delimited** — what's included, what's excluded, expected behavior for edge cases
 5. **User confirms** — restate understanding and get explicit go-ahead before proceeding
@@ -35,19 +35,27 @@ If the request is vague or ambiguous: ask targeted questions. Better to over-cla
 - **Package**: `@srhenry/storage-manager` (Node.js filesystem wrapper, Promise-based)
 - **Module system**: CommonJS only (`"type": "commonjs"`)
 - **Package manager**: Yarn 1.x (classic) — **never use `npm install`**, always `yarn install`
+- **Linter**: Biome (lint only, no formatting)
 - **Formatter**: Prettier
+- **Test framework**: Vitest
 - **TypeScript**: strict mode, target ES2024, module commonjs
-- **No linter** configured (no ESLint, no Biome)
-- **No test suite** — `npm test` is a placeholder that exits 1
 
 ## Build & Development Commands
 
-| Command | Purpose |
-|---------|---------|
-| `yarn install` | Install dependencies (required after checkout) |
-| `yarn build` | Compile TS via `npx tsc` |
-| `yarn docs` | Generate TypeDoc to `docs/` |
-| `npx tsc --noEmit` | Typecheck only (no emit) |
+| Command              | Purpose                                        |
+| -------------------- | ---------------------------------------------- |
+| `yarn install`       | Install dependencies (required after checkout) |
+| `yarn build`         | Compile TS via `npx tsc`                       |
+| `yarn docs`          | Generate TypeDoc to `docs/`                    |
+| `yarn test`          | Run Vitest                                     |
+| `yarn test:coverage` | Run Vitest with v8 coverage                    |
+| `yarn lint`          | Biome lint                                     |
+| `yarn lint:fix`      | Biome lint with auto-fix                       |
+| `yarn format`        | Prettier check                                 |
+| `yarn format:fix`    | Prettier write                                 |
+| `yarn qa`            | Biome lint + Prettier check                    |
+| `yarn qa:fix`        | Biome lint --write + Prettier write            |
+| `npx tsc --noEmit`   | Typecheck only (no emit)                       |
 
 No watch mode configured. Re-run `yarn build` after changes.
 
@@ -66,6 +74,11 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 - `StorageManager` is a static-only class (private constructor); all methods are `StorageManager.*`
 - `src/` is the only source directory. Compiled output (`.js`, `.d.ts`, `.map`) lands in repo root per `outDir: "./"` + `rootDir: "./src"`
 - `files` in `package.json` publishes only `*.js` and `*.d.ts` from root (TS source excluded via `.npmignore`)
+
+### Test Layout
+
+- **Unit tests**: co-located in `src/**/__tests__/*.spec.ts`
+- **Other test kinds** (integration, e2e, performance): root-level `__tests__/**/*.spec.ts`
 
 ## Code Conventions
 
@@ -112,11 +125,11 @@ Before making any commit, the AI harness **must** clarify the commit author iden
 
 ### Branch Naming
 
-| Pattern | Use |
-|---------|-----|
-| `feat/<topic>` | New features |
-| `refactor/<topic>` | Refactors |
-| `hotfix/<topic>` | Urgent fixes |
+| Pattern             | Use          |
+| ------------------- | ------------ |
+| `feat/<topic>`      | New features |
+| `refactor/<topic>`  | Refactors    |
+| `hotfix/<topic>`    | Urgent fixes |
 | `release/<version>` | Release prep |
 
 ### Branch Roles
@@ -223,14 +236,14 @@ If any criterion is uncertain → propose first instead.
 
 ### Section routing table
 
-| Discovery type | Target section |
-|----------------|---------------|
-| Build/runtime gotcha not covered | Gotchas |
-| Directory purpose not documented | Architecture |
-| Missing Prohibition (behavior that must never happen) | Prohibitions |
-| New command or script not in table | Build & Development Commands |
-| Dependency behavioral quirk | Gotchas |
-| Test convention or matcher | Code Conventions |
+| Discovery type                                        | Target section               |
+| ----------------------------------------------------- | ---------------------------- |
+| Build/runtime gotcha not covered                      | Gotchas                      |
+| Directory purpose not documented                      | Architecture                 |
+| Missing Prohibition (behavior that must never happen) | Prohibitions                 |
+| New command or script not in table                    | Build & Development Commands |
+| Dependency behavioral quirk                           | Gotchas                      |
+| Test convention or matcher                            | Code Conventions             |
 
 ### Dedup rule
 
