@@ -27,8 +27,8 @@ jobs:
                   YARN_VERSION=$(yarn --version)
                   echo "Yarn version: $YARN_VERSION"
                   if ! echo "$YARN_VERSION" | grep -qE '^1\.'; then
-                    echo "::error::Expected Yarn 1.x but got $YARN_VERSION. Aborting."
-                    exit 1
+                      echo "::error::Expected Yarn 1.x but got $YARN_VERSION. Aborting."
+                      exit 1
                   fi
 
             - name: Install dependencies
@@ -42,3 +42,6 @@ jobs:
 
             - name: Build
               run: yarn build
+
+            - name: Test
+              run: yarn test
