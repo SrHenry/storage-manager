@@ -1,6 +1,6 @@
 {
     "name": "@srhenry/storage-manager",
-    "version": "1.4.12",
+    "version": "2.0.0",
     "description": "A Custom filesystem wrapper for Node.JS implemented in Typescript.",
     "repository": "gitlab:SrHenry/storage-manager",
     "main": "index.js",

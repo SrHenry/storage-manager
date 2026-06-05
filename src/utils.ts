@@ -1,18 +1,3 @@
-/**
- * A function that removes its last element of an array-like list and
- *
- * @template {T extends Array<U>} T - An array-like object type
- * @template U Arbitrary unknown type of the array-like object
- *
- * @param {T} list The list to remove the last element of it
- *
- * @returns {T} The list without the last element of it
- */
-export function removeLastElement<T extends Array<U>, U>(list: T): T {
-    list.pop()
-    return list
-}
-
 /** Check if given input is Iterable */
 export function isIterable(obj: any): obj is Iterable<any> {
     return typeof obj[Symbol.iterator] === 'function'
@@ -44,7 +29,7 @@ export namespace LogicGates {
      * @returns result of nested 'OR' Logic gate.
      */
     export const OR = (...values: any[]) => {
-        for (const value of values) if (!!value) return true
+        for (const value of values) if (value) return true
         return false
     }
 
