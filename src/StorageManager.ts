@@ -6,13 +6,7 @@ import Stream from 'node:stream'
 import { lt } from 'semver'
 
 import { DirectoryList } from './DirectoryList'
-import {
-    IgnoreUnionType,
-    isAsyncIterable,
-    isIterable,
-    LogicGates,
-    removeLastElement,
-} from './utils'
+import { type IgnoreUnionType, isAsyncIterable, isIterable, LogicGates } from './utils'
 
 /** Read mode */
 type ReadMode = 'r'
@@ -128,7 +122,7 @@ export class StorageManager {
                 stream.write(sanitizeInput(value), charset, err => {
                     stream.end()
 
-                    if (!!err) reject(err)
+                    if (err) reject(err)
                     else resolve(true)
                 })
             } catch (err: unknown) {
@@ -175,7 +169,7 @@ export class StorageManager {
                 write: (input: Input) =>
                     new Promise<boolean>((resolve, reject) => {
                         ws.write(sanitizeInput(input), encoding, err =>
-                            !!err ? reject(err) : resolve(true)
+                            err ? reject(err) : resolve(true)
                         )
                     }),
             }
@@ -215,7 +209,7 @@ export class StorageManager {
                     ? value
                     : Buffer.from(sanitizeInput(value), charset)
                 fs.appendFile(path, chunk, err => {
-                    if (!!err) reject(err)
+                    if (err) reject(err)
                     else resolve(true)
                 })
             })
@@ -262,7 +256,7 @@ export class StorageManager {
                     write: (input: Input) =>
                         new Promise<boolean>((resolve, reject) => {
                             ws.write(sanitizeInput(input), encoding, err =>
-                                !!err ? reject(err) : resolve(true)
+                                err ? reject(err) : resolve(true)
                             )
                         }),
                 }
@@ -312,7 +306,7 @@ export class StorageManager {
     public static async getAsBuffers(path: string) {
         if (!(await StorageManager.exists(path))) throw null
         return new Promise<Buffer[]>(resolve => {
-            const arraybuffer = new Array<Buffer>()
+            const arraybuffer: Buffer[] = []
             const readStream = StorageManager.fileStream(path, 'r')
 
             readStream.on('error', () => resolve([]))
@@ -801,62 +795,6 @@ export class StorageManager {
     }
 
     /**
-     * Wrapper to check if a path already exists in filesystem.
-     * @param path Path to check avaiability.
-     * @param cb Optional callback to run after async check.
-     * @returns A promise of existance check.
-     *
-     * @deprecated @see {@link StorageManager.exists StorageManager.exists()}
-     */
-    public static async checkExist(
-        path: string,
-        cb?: (exists?: boolean | PromiseLike<boolean> | undefined) => any
-    ): Promise<boolean> {
-        return new Promise((resolve, reject) =>
-            fs.access(path, fs.constants.F_OK, err => {
-                !!err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
-            })
-        )
-    }
-
-    /**
-     * Wrapper to write files asynchronously in filesystem.
-     * @param filePath Path of the file to write in filesystem (overrides if already exists).
-     * @param f File data, as ArrayBuffer or UInt8Array.
-     * @param encoding Optional encoding of data, default binary.
-     *
-     * @deprecated @see {@link StorageManager.put StorageManager.put()},
-     *  {@link StorageManager.putStreamed StorageManager.putStreamed()},
-     *  {@link StorageManager.append StorageManager.append()},
-     *  {@link StorageManager.appendStreamed StorageManager.appendStreamed()},
-     */
-    public static async writeStorage(
-        filePath: string,
-        f: ArrayBuffer | SharedArrayBuffer | Uint8Array,
-        encoding: BufferEncoding = 'binary'
-    ): Promise<void> {
-        const buffer = Buffer.from(f as Uint8Array<ArrayBuffer>)
-
-        // removeLastElement(filePath.split("/"))
-
-        fs.access(removeLastElement(filePath.split('/')).join('/'), fs.constants.F_OK, err => {
-            if (err) {
-                fs.mkdir(
-                    removeLastElement(filePath.split('/')).join('/'),
-                    { recursive: true },
-                    (err, _path) => {
-                        if (err) {
-                            if (err.code !== 'EEXIST') console.error(err)
-                            else fs.createWriteStream(filePath).write(buffer, encoding)
-                        } else fs.createWriteStream(filePath).write(buffer, encoding)
-                    }
-                )
-            } else removeLastElement(filePath.split('/')).join('/')
-        })
-        // return fs.createWriteStream(filePath).write(buffer, encoding);
-    }
-
-    /**
      * Wrapper function to directory creation in filesystem (recursive or not).
      * @param path Path to search in filesystem.
      * @param options Filesystem options for mkdir operation.
@@ -871,155 +809,32 @@ export class StorageManager {
         return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void, reject) => {
             const promiseArgs = (first: any, ...args: any[]) => (cb ? cb(first, ...args) : first)
             const preHandler = (err: NodeJS.ErrnoException | null, path?: string) => {
-                if (!!err) {
+                if (err) {
                     if (err.code !== 'EEXIST') return reject(promiseArgs(err, path))
                     else return resolve(promiseArgs(err, path))
                 } else return resolve(promiseArgs(null, path))
             }
 
-            StorageManager.checkExist(path).then(
-                async () => preHandler(null, path),
-                async () => {
-                    if (lt(process.versions.node, '10.12.0')) {
-                        return path.split('/').map((v, i, arr) =>
-                            fs.mkdir(
-                                this.path.join(String(path.split(v)[0]), v),
-                                options,
-                                (err: NodeJS.ErrnoException | null) => {
-                                    if (arr.length - 1 > i) {
-                                        if (err && err.code !== 'EEXIST') {
-                                            console.error(err)
-                                            preHandler(err)
-                                        }
-                                    } else preHandler(err)
-                                }
-                            )
+            StorageManager.exists(path).then(exists => {
+                if (exists) return preHandler(null, path)
+                if (lt(process.versions.node, '10.12.0')) {
+                    return path.split('/').map((v, i, arr) =>
+                        fs.mkdir(
+                            StorageManager.path.join(String(path.split(v)[0]), v),
+                            options,
+                            (err: NodeJS.ErrnoException | null) => {
+                                if (arr.length - 1 > i) {
+                                    if (err && err.code !== 'EEXIST') {
+                                        console.error(err)
+                                        preHandler(err)
+                                    }
+                                } else preHandler(err)
+                            }
                         )
-                    } else return fs.mkdir(path, options, preHandler)
-                }
-            )
-        })
-    }
-
-    /**
-     *
-     * @param filePath File path to write in filesystem (if parent directory does not exist, create before write the file).
-     * @param data File data as ArrayBuffer.
-     * @param chunkSize Chunk size of file.
-     * @param cb Optional callback called when write operation is finished.
-     * @returns A promise of the write operation.
-     *
-     * @deprecated @see {@link StorageManager.writeStream StorageManager.writeStream()}
-     */
-    public static async writeFileStream(
-        filePath: string,
-        data: ArrayBuffer,
-        chunkSize = 65536,
-        cb?: (err?: Error | null) => void
-    ): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            const parentPath = removeLastElement(filePath.split('/')).join('/')
-            StorageManager.mkdir(parentPath, { recursive: true }).then(_ => {
-                const wstream = fs.createWriteStream(filePath)
-
-                wstream.on('error', cb ?? reject)
-
-                for (let c = 0; c < data.byteLength; c += chunkSize) {
-                    const buffer = Buffer.from(data.slice(c, c + chunkSize))
-                    wstream.write(
-                        buffer,
-                        cb ??
-                            (err => {
-                                if (err) {
-                                    wstream.end()
-                                    reject(err)
-                                }
-                            })
                     )
-                }
-
-                wstream.end(cb)
-
-                resolve(true)
-            }, reject)
+                } else return fs.mkdir(path, options, preHandler)
+            })
         })
-    }
-
-    /**
-     * Reads given file asynchronously on-demand and pipe out to given writable stream
-     * @deprecated Obsolete and unsafe code using `Stream.pipe(stream: Stream.Writable)`. Prefer `Stream.pipeline(...streams: Stream[, cb: err => void])` implementation at `StorageManager.readFileStream(...)`
-     * @param filePath path to the file in default storage
-     * @param out writable stream to output retrieved data
-     *
-     * @deprecated @see {@link StorageManager.readStream StorageManager.readStream()}
-     */
-    public static async readStorage(filePath: string, out: Stream.Writable): Promise<void> {
-        const file = fs.createReadStream(filePath)
-        file.on('open', () => file.pipe(out))
-        file.on('error', err => out.end(err))
-    }
-
-    /**
-     * Assynchronously reads given file at default storage. Supports Callback syntax and Promise syntax.
-     * @param filePath path to the file in default storage.
-     * @param cb optional callback to handle output and error. If not provided it resolve as a Promise
-     *
-     * @deprecated @see {@link StorageManager.getAsBuffers StorageManager.getAsBuffers()}
-     */
-    public static async getFileContents(
-        filePath: string,
-        cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void
-    ): Promise<Buffer[]> {
-        return new Promise((resolve: (data: Buffer[]) => any, reject) => {
-            const arr_buffer = new Array<Buffer>()
-
-            /* const wstream =  */ StorageManager.readFileStream(
-                filePath,
-                {
-                    write: (
-                        chunk: Buffer,
-                        _encoding: BufferEncoding,
-                        next: (err?: Error | null) => void
-                    ) => {
-                        arr_buffer.push(chunk)
-                        next()
-                    },
-                },
-                cb ?? (err => (err ? reject(err) : resolve(arr_buffer)))
-            )
-
-            // wstream.on('close', () => cb? cb(null, arr_buffer) : resolve(arr_buffer))
-        })
-    }
-
-    /**
-     * Creates an Writable stream to transform/process chunk data from a file, piping'em, and returns the writed stream.
-     *
-     * @deprecated @see {@link StorageManager.readStream StorageManager.readStream()}
-     *
-     * @param filePath path to the file in default storage.
-     * @param opts options to setup the write stream.
-     * @param cb optional callback to error handling (default `console.error` output stream).
-     */
-    public static readFileStream(
-        filePath: string,
-        opts?: Stream.WritableOptions | Stream.Writable,
-        cb?: (err?: Error | null) => void
-    ): Stream.Writable {
-        const f = fs.createReadStream(filePath)
-        const tstream = !!(opts as Stream.Writable)?.writable
-            ? (opts as Stream.Writable)
-            : new Stream.Writable(opts as Stream.WritableOptions)
-
-        f.on('error', err => {
-            tstream.end()
-            cb ? cb(err) : console.error(err)
-        })
-
-        f.on('close', () => tstream.end())
-
-        Stream.pipeline(f, tstream, cb ?? (err => (!!err ? console.error : null)))
-        return tstream
     }
 
     /**
@@ -1073,36 +888,6 @@ export class StorageManager {
      * @returns A promise of the delete operation.
      */
     public static delete = StorageManager.deleteFromStorage
-
-    /**
-     * Wrapper for opening attempts to a path, be file or directory.
-     * @param path Path to open a file or list directory.
-     * @param ifFile Optional callback called if path leads to a file.
-     * @param ifDir Optional callback called if path leads to a directory.
-     * @param encoding Optional encoding for files, default utf-8.
-     *
-     * @deprecated @see {@link StorageManager.stats StorageManager.stats()}
-     */
-    public static async openFileOrDirectory(
-        path: string,
-        ifFile?: (err: NodeJS.ErrnoException | null, data: string) => void,
-        ifDir?: (err: NodeJS.ErrnoException | null, files: string[]) => void,
-        encoding: BufferEncoding = 'utf-8'
-    ) {
-        fs.access(path as string, fs.constants.F_OK | fs.constants.R_OK, err => {
-            if (err) throw { message: 'no such file or directory!', path: path }
-            else
-                fs.lstat(path as string, (err, stats) => {
-                    if (err) {
-                        console.log(err)
-                        throw err
-                    } else if (stats.isFile())
-                        fs.readFile(path, { encoding }, ifFile ?? (() => null))
-                    else if (stats.isDirectory()) fs.readdir(path as string, ifDir ?? (() => null))
-                    else throw { message: `operation not supported! (${path})` }
-                })
-        })
-    }
 }
 
 export default StorageManager

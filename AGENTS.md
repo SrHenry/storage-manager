@@ -99,12 +99,6 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 - `@/*` path alias maps to repo root (tsconfig `paths`), but source only uses relative imports
 - `isolatedModules: true` — each file is transpiled independently
 
-### Deprecated methods
-
-Do not use or extend these — they are legacy:
-
-`checkExist`, `writeFileStream`, `writeStorage`, `readStorage`, `getFileContents`, `readFileStream`, `openFileOrDirectory`
-
 ### Pre-commit hooks
 
 - Husky + lint-staged runs on every commit
