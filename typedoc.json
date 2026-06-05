@@ -1,6 +1,6 @@
 {
     "entryPoints": ["src/index.ts"],
-    "out": "docs",
+    "out": "typedoc-site",
     "entryPointStrategy": "expand",
     "excludePrivate": true,
     "excludeProtected": true,
