@@ -32,15 +32,6 @@ export const {
     delete: unlink,
     delete: Delete,
     deleteFromStorage,
-
-    //deprecated:
-    checkExist,
-    writeFileStream,
-    writeStorage,
-    readFileStream,
-    readStorage,
-    getFileContents,
-    openFileOrDirectory,
 } = StorageManager
 
 export default StorageManager
