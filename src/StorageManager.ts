@@ -877,27 +877,25 @@ export class StorageManager {
                 } else return resolve(promiseArgs(null, path))
             }
 
-            StorageManager.checkExist(path).then(
-                async () => preHandler(null, path),
-                async () => {
-                    if (lt(process.versions.node, '10.12.0')) {
-                        return path.split('/').map((v, i, arr) =>
-                            fs.mkdir(
-                                StorageManager.path.join(String(path.split(v)[0]), v),
-                                options,
-                                (err: NodeJS.ErrnoException | null) => {
-                                    if (arr.length - 1 > i) {
-                                        if (err && err.code !== 'EEXIST') {
-                                            console.error(err)
-                                            preHandler(err)
-                                        }
-                                    } else preHandler(err)
-                                }
-                            )
+            StorageManager.exists(path).then(exists => {
+                if (exists) return preHandler(null, path)
+                if (lt(process.versions.node, '10.12.0')) {
+                    return path.split('/').map((v, i, arr) =>
+                        fs.mkdir(
+                            StorageManager.path.join(String(path.split(v)[0]), v),
+                            options,
+                            (err: NodeJS.ErrnoException | null) => {
+                                if (arr.length - 1 > i) {
+                                    if (err && err.code !== 'EEXIST') {
+                                        console.error(err)
+                                        preHandler(err)
+                                    }
+                                } else preHandler(err)
+                            }
                         )
-                    } else return fs.mkdir(path, options, preHandler)
-                }
-            )
+                    )
+                } else return fs.mkdir(path, options, preHandler)
+            })
         })
     }
 
