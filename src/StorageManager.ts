@@ -7,7 +7,7 @@ import { lt } from 'semver'
 
 import { DirectoryList } from './DirectoryList'
 import {
-    IgnoreUnionType,
+    type IgnoreUnionType,
     isAsyncIterable,
     isIterable,
     LogicGates,
@@ -128,7 +128,7 @@ export class StorageManager {
                 stream.write(sanitizeInput(value), charset, err => {
                     stream.end()
 
-                    if (!!err) reject(err)
+                    if (err) reject(err)
                     else resolve(true)
                 })
             } catch (err: unknown) {
@@ -175,7 +175,7 @@ export class StorageManager {
                 write: (input: Input) =>
                     new Promise<boolean>((resolve, reject) => {
                         ws.write(sanitizeInput(input), encoding, err =>
-                            !!err ? reject(err) : resolve(true)
+                            err ? reject(err) : resolve(true)
                         )
                     }),
             }
@@ -215,7 +215,7 @@ export class StorageManager {
                     ? value
                     : Buffer.from(sanitizeInput(value), charset)
                 fs.appendFile(path, chunk, err => {
-                    if (!!err) reject(err)
+                    if (err) reject(err)
                     else resolve(true)
                 })
             })
@@ -262,7 +262,7 @@ export class StorageManager {
                     write: (input: Input) =>
                         new Promise<boolean>((resolve, reject) => {
                             ws.write(sanitizeInput(input), encoding, err =>
-                                !!err ? reject(err) : resolve(true)
+                                err ? reject(err) : resolve(true)
                             )
                         }),
                 }
@@ -312,7 +312,7 @@ export class StorageManager {
     public static async getAsBuffers(path: string) {
         if (!(await StorageManager.exists(path))) throw null
         return new Promise<Buffer[]>(resolve => {
-            const arraybuffer = new Array<Buffer>()
+            const arraybuffer: Buffer[] = []
             const readStream = StorageManager.fileStream(path, 'r')
 
             readStream.on('error', () => resolve([]))
@@ -814,7 +814,7 @@ export class StorageManager {
     ): Promise<boolean> {
         return new Promise((resolve, reject) =>
             fs.access(path, fs.constants.F_OK, err => {
-                !!err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
+                err ? reject(cb ? cb(false) : err) : resolve(cb ? cb(true) : true)
             })
         )
     }
@@ -871,7 +871,7 @@ export class StorageManager {
         return new Promise((resolve: (err: NodeJS.ErrnoException | null) => void, reject) => {
             const promiseArgs = (first: any, ...args: any[]) => (cb ? cb(first, ...args) : first)
             const preHandler = (err: NodeJS.ErrnoException | null, path?: string) => {
-                if (!!err) {
+                if (err) {
                     if (err.code !== 'EEXIST') return reject(promiseArgs(err, path))
                     else return resolve(promiseArgs(err, path))
                 } else return resolve(promiseArgs(null, path))
@@ -883,7 +883,7 @@ export class StorageManager {
                     if (lt(process.versions.node, '10.12.0')) {
                         return path.split('/').map((v, i, arr) =>
                             fs.mkdir(
-                                this.path.join(String(path.split(v)[0]), v),
+                                StorageManager.path.join(String(path.split(v)[0]), v),
                                 options,
                                 (err: NodeJS.ErrnoException | null) => {
                                     if (arr.length - 1 > i) {
@@ -971,7 +971,7 @@ export class StorageManager {
         cb?: (err: Error | null | undefined, arrayBuffer?: Array<Buffer>) => void
     ): Promise<Buffer[]> {
         return new Promise((resolve: (data: Buffer[]) => any, reject) => {
-            const arr_buffer = new Array<Buffer>()
+            const arr_buffer: Buffer[] = []
 
             /* const wstream =  */ StorageManager.readFileStream(
                 filePath,
@@ -1007,7 +1007,7 @@ export class StorageManager {
         cb?: (err?: Error | null) => void
     ): Stream.Writable {
         const f = fs.createReadStream(filePath)
-        const tstream = !!(opts as Stream.Writable)?.writable
+        const tstream = (opts as Stream.Writable)?.writable
             ? (opts as Stream.Writable)
             : new Stream.Writable(opts as Stream.WritableOptions)
 
@@ -1018,7 +1018,7 @@ export class StorageManager {
 
         f.on('close', () => tstream.end())
 
-        Stream.pipeline(f, tstream, cb ?? (err => (!!err ? console.error : null)))
+        Stream.pipeline(f, tstream, cb ?? (err => (err ? console.error : null)))
         return tstream
     }
 
