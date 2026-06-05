@@ -39,11 +39,12 @@
 
 ## P2 — Medium
 
-- [ ] Remove deprecated methods
-- **Blocked by**: ~~add-vitest~~ (done)
+- [x] Remove deprecated methods
+    - **Blocked by**: ~~add-vitest~~ (done)
     - **Details**: Remove `checkExist`, `writeFileStream`, `writeStorage`, `readStorage`, `getFileContents`, `readFileStream`, `openFileOrDirectory` from `StorageManager.ts` and their re-exports in `src/index.ts`. Ensure no internal code paths depend on them (they don't — they're self-contained legacy). This is a breaking change → bump major version
     - **Files**: `src/StorageManager.ts`, `src/index.ts`
     - **Acceptance**: Deprecated methods are gone; `yarn build` + `yarn test` pass; no references to removed methods remain
+    - **PR**: [#5](https://github.com/SrHenry/storage-manager/pull/5)
 
 - [ ] Remove legacy Node version code paths
     - **ID**: remove-legacy-node
