@@ -46,7 +46,7 @@ If the request is vague or ambiguous: ask targeted questions. Better to over-cla
 | -------------------- | ---------------------------------------------- |
 | `yarn install`       | Install dependencies (required after checkout) |
 | `yarn build`         | Compile TS via `npx tsc`                       |
-| `yarn docs`          | Generate TypeDoc to `docs/`                    |
+| `yarn docs`          | Generate TypeDoc to `typedoc-site/`            |
 | `yarn test`          | Run Vitest                                     |
 | `yarn test:coverage` | Run Vitest with v8 coverage                    |
 | `yarn lint`          | Biome lint                                     |
@@ -203,7 +203,7 @@ for remote in $(git remote); do git push "$remote" --delete feat/<topic> || echo
 
 ## Docs
 
-- `yarn docs` — generates TypeDoc to `docs/` (GitLab Pages deploys from `docs/` on default branch)
+- `yarn docs` — generates TypeDoc to `typedoc-site/` (GitLab Pages deploys from `typedoc-site/` on default branch)
 - `typedoc.json` entry: `src/index.ts`, excludes private/protected/internal members
 
 ## Gotchas
