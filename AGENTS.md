@@ -33,30 +33,33 @@ If the request is vague or ambiguous: ask targeted questions. Better to over-cla
 ## Project Overview
 
 - **Package**: `@srhenry/storage-manager` (Node.js filesystem wrapper, Promise-based)
-- **Module system**: CommonJS only (`"type": "commonjs"`)
+- **Module system**: Dual ESM + CJS (`"type": "module"`, conditional `exports`)
 - **Package manager**: Yarn 1.x (classic) — **never use `npm install`**, always `yarn install`
 - **Linter**: Biome (lint only, no formatting)
 - **Formatter**: Prettier
 - **Test framework**: Vitest
-- **TypeScript**: strict mode, target ES2024, module commonjs
+- **TypeScript**: strict mode, target ES2024, module esnext (base), esnext (ESM build), commonjs (CJS build)
 
 ## Build & Development Commands
 
-| Command              | Purpose                                        |
-| -------------------- | ---------------------------------------------- |
-| `yarn install`       | Install dependencies (required after checkout) |
-| `yarn build`         | Compile TS via `npx tsc`                       |
-| `yarn docs`          | Generate TypeDoc to `typedoc-site/`            |
-| `yarn test`          | Run Vitest                                     |
-| `yarn test:coverage` | Run Vitest with v8 coverage                    |
-| `yarn lint`          | Biome lint                                     |
-| `yarn lint:fix`      | Biome lint with auto-fix                       |
-| `yarn format`        | Prettier check                                 |
-| `yarn format:fix`    | Prettier write                                 |
-| `yarn qa`            | Biome lint + Prettier check                    |
-| `yarn qa:fix`        | Biome lint --write + Prettier write            |
-| `yarn prepare`       | Install Husky git hooks                        |
-| `npx tsc --noEmit`   | Typecheck only (no emit)                       |
+| Command              | Purpose                                                                       |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `yarn install`       | Install dependencies (required after checkout)                                |
+| `yarn build`         | Dual ESM + CJS build (ESM → `dist/esm/`, CJS → `dist/cjs/`, types → `types/`) |
+| `yarn build:esm`     | ESM build only                                                                |
+| `yarn build:cjs`     | CJS build only (creates `dist/cjs/package.json`)                              |
+| `yarn build:fix-esm` | Post-build: add `.js` extensions to ESM imports                               |
+| `yarn docs`          | Generate TypeDoc to `typedoc-site/`                                           |
+| `yarn test`          | Run Vitest                                                                    |
+| `yarn test:coverage` | Run Vitest with v8 coverage                                                   |
+| `yarn lint`          | Biome lint                                                                    |
+| `yarn lint:fix`      | Biome lint with auto-fix                                                      |
+| `yarn format`        | Prettier check                                                                |
+| `yarn format:fix`    | Prettier write                                                                |
+| `yarn qa`            | Biome lint + Prettier check                                                   |
+| `yarn qa:fix`        | Biome lint --write + Prettier write                                           |
+| `yarn prepare`       | Install Husky git hooks                                                       |
+| `npx tsc --noEmit`   | Typecheck only (no emit)                                                      |
 
 No watch mode configured. Re-run `yarn build` after changes.
 
@@ -73,8 +76,9 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 - Single package, no monorepo
 - Entrypoint chain: `index.ts` → re-exports `src/index.ts` → exports `StorageManager` (static class), `DirectoryList`, and destructured static methods
 - `StorageManager` is a static-only class (private constructor); all methods are `StorageManager.*`
-- `src/` is the only source directory. Compiled output (`.js`, `.d.ts`, `.map`) lands in repo root per `outDir: "./"` + `rootDir: "./src"`
-- `files` in `package.json` publishes only `*.js` and `*.d.ts` from root (TS source excluded via `.npmignore`)
+- `src/` is the only source directory. Build output: `dist/esm/` (ESM JS), `dist/cjs/` (CJS JS), `types/` (declarations). All three are gitignored and published via `"files": ["dist", "types"]`
+- `tsconfig.json` is base-only (`noEmit: true`). Build configs: `tsconfig.esm.json`, `tsconfig.cjs.json`
+- Post-build script `scripts/fix-esm-imports.mjs` adds `.js` extensions to relative imports in ESM output and declarations
 
 ### Test Layout
 
@@ -208,7 +212,10 @@ for remote in $(git remote); do git push "$remote" --delete feat/<topic> || echo
 
 ## Gotchas
 
-- Build output writes `.js`/`.d.ts` to repo root, not a separate `dist/` dir. Git ignores root `*.js`/`.d.ts` via `.gitignore`, but npm includes them via `files` + `.npmignore` exclusion logic
+- Build output writes to `dist/` (ESM + CJS) and `types/` (declarations). All are gitignored. Published via `"files": ["dist", "types"]` — no `.npmignore`
+- `fix-esm-imports.mjs` must run after ESM build but before CJS build (CJS doesn't need extension rewriting — Node `require()` resolves extensions automatically)
+- `dist/cjs/package.json` with `{"type":"commonjs"}` is created during `build:cjs` — this is required because top-level `package.json` has `"type": "module"`
+- Source imports are extensionless. The ESM build emits extensionless specifiers, which `fix-esm-imports.mjs` then rewrites to `.js`. Do NOT add `.js` extensions to source imports
 - `mkdir` has a legacy code path for Node < 10.12.0 (semver check); `deleteFromStorage` has one for Node < 12.10.0
 - `appendStreamed` with a single `Input` value falls through to `putStreamed` (not `append`) when file doesn't exist
 - `developer` vs `master`: Most PRs target `developer`. If `developer` is behind `master`, merge `master` into `developer` first, then rebase the feature branch
