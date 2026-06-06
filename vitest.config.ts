@@ -6,4 +6,16 @@ export default defineConfig({
         include: ['src/**/__tests__/*.spec.ts'],
         globals: true,
     },
+    resolve: {
+        alias: [
+            {
+                find: /^(\.\.\/.*)\.js$/,
+                replacement: '$1',
+            },
+            {
+                find: /^(\.\/.*)\.js$/,
+                replacement: '$1',
+            },
+        ],
+    },
 })
