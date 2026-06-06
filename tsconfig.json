@@ -1,18 +1,12 @@
 {
     "compilerOptions": {
-        /* Basic Options */
         "target": "es2024",
         "lib": ["ES2024"],
-        "module": "commonjs",
+        "module": "esnext",
         "moduleResolution": "bundler",
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "outDir": "./",
         "rootDir": "./src",
+        "noEmit": true,
         "isolatedModules": true,
-
-        /* Strict Type-Checking Options */
         "strict": true,
         "noImplicitAny": true,
         "strictNullChecks": true,
@@ -21,33 +15,26 @@
         "strictPropertyInitialization": false,
         "noImplicitThis": true,
         "alwaysStrict": true,
-
-        /* Additional Checks */
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-
-        /* Module Resolution Options */
         "types": ["node"],
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
-
-        /* Experimental Options */
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-
-        /* Advanced Options */
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true
     },
-
     "include": ["src/*"],
     "exclude": [
         ".git",
         "bin",
         "build",
         "node_modules",
+        "dist",
+        "types",
         "docs",
         "test",
         "tests",
