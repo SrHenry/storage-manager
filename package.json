@@ -3,20 +3,39 @@
     "version": "2.0.0",
     "description": "A Custom filesystem wrapper for Node.JS implemented in Typescript.",
     "repository": "gitlab:SrHenry/storage-manager",
-    "main": "index.js",
-    "types": "index.d.ts",
-    "type": "commonjs",
+    "type": "module",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "types": "./types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/index.d.ts",
+            "import": "./dist/esm/index.js",
+            "require": "./dist/cjs/index.js",
+            "default": "./dist/esm/index.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "dist",
+        "types"
+    ],
     "scripts": {
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
-        "build": "npx tsc",
+        "build:clean": "node -e \"const fs=require('node:fs');fs.rmSync('./dist',{recursive:true,force:true});fs.rmSync('./types',{recursive:true,force:true})\"",
+        "build:esm": "tsc -p tsconfig.esm.json",
+        "build:cjs": "tsc -p tsconfig.cjs.json && node -e \"const fs=require('node:fs');fs.writeFileSync('./dist/cjs/package.json',JSON.stringify({type:'commonjs'})+'\\n')\"",
+        "build:fix-esm": "node ./scripts/fix-esm-imports.mjs",
+        "build": "yarn build:clean && yarn build:esm && yarn build:fix-esm && yarn build:cjs",
         "docs": "npx typedoc",
-        "lint": "biome lint ./src",
-        "lint:fix": "biome lint --write ./src",
-        "format": "prettier --check \"src/**/*.ts\"",
-        "format:fix": "prettier --write \"src/**/*.ts\"",
-        "qa": "biome lint ./src && prettier --check \"src/**/*.ts\"",
-        "qa:fix": "biome lint --write ./src && prettier --write \"src/**/*.ts\"",
+        "lint": "biome lint ./src ./scripts ./vitest.config.ts ./index.ts",
+        "lint:fix": "biome lint --write ./src ./scripts ./vitest.config.ts ./index.ts",
+        "format": "prettier --check \"src/**/*.ts\" \"scripts/**/*.mjs\" \"vitest.config.ts\" \"index.ts\" \"**/*.{json,yml,yaml}\"",
+        "format:fix": "prettier --write \"src/**/*.ts\" \"scripts/**/*.mjs\" \"vitest.config.ts\" \"index.ts\" \"**/*.{json,yml,yaml}\"",
+        "typecheck": "tsc --noEmit",
+        "qa": "yarn typecheck && yarn lint && yarn format",
+        "qa:fix": "yarn lint:fix && yarn format:fix",
         "prepare": "husky"
     },
     "keywords": [
@@ -46,9 +65,5 @@
         "typedoc": "^0.28.19",
         "typescript": "^6.0.3",
         "vitest": "^4.1.8"
-    },
-    "files": [
-        "*.js",
-        "*.d.ts"
-    ]
+    }
 }

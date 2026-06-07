@@ -4,6 +4,9 @@
         "ignoreUnknown": true,
         "includes": [
             "src/**",
+            "scripts/**",
+            "vitest.config.ts",
+            "index.ts",
             "!!node_modules",
             "!!coverage",
             "!!docs",

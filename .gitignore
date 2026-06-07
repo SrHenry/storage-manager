@@ -1,11 +1,10 @@
 .history
 .vscode
 /node_modules
-/*.js
-/*.mjs
-/*.d.ts
+/dist
+/types
+/typedoc-site
 /src/*.draft.ts
 /package-lock.json
 /dir0
 /coverage
-/typedoc-site
