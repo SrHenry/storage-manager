@@ -47,16 +47,17 @@
     - **Acceptance**: Deprecated methods are gone; `yarn build` + `yarn test` pass; no references to removed methods remain
     - **PR**: [#5](https://github.com/SrHenry/storage-manager/pull/5)
 
-- [ ] Remove legacy Node version code paths
-    - **ID**: remove-legacy-node
-    - **Blocked by**: ~~add-vitest~~ (done), ~~dual-build~~ (done)
-    - **Details**: `mkdir` has a semver check for Node < 10.12.0 and `deleteFromStorage` has one for Node < 12.10.0. Both versions are long EOL. Remove the branches and the `semver` dependency entirely. Also remove `removeLastElement` from `utils.ts` if no other consumers remain
-    - **Files**: `src/StorageManager.ts`, `src/utils.ts`, `package.json`
-    - **Acceptance**: `semver` removed from dependencies; `mkdir` and `deleteFromStorage` use only the modern code paths; `yarn test` passes
+- [x] Remove legacy Node version code paths
+- **ID**: remove-legacy-node
+- **Blocked by**: ~~add-vitest~~ (done), ~~dual-build~~ (done)
+- **Details**: `mkdir` has a semver check for Node < 10.12.0 and `deleteFromStorage` has one for Node < 12.10.0. Both versions are long EOL. Remove the branches and the `semver` dependency entirely. Also remove `removeLastElement` from `utils.ts` if no other consumers remain
+- **Files**: `src/StorageManager.ts`, `src/utils.ts`, `package.json`
+- **Acceptance**: `semver` removed from dependencies; `mkdir` and `deleteFromStorage` use only the modern code paths; `yarn test` passes
+- **PR**: TBD
 
 - [ ] Refactor: split StorageManager into focused modules
     - **ID**: refactor-split-modules
-    - **Blocked by**: remove-deprecated, remove-legacy-node
+    - **Blocked by**: ~~remove-deprecated~~ (done), ~~remove-legacy-node~~ (done)
     - **Details**: `StorageManager.ts` is 1100+ lines with all methods in a single static class. Split into domain modules: read operations, write operations, stream operations, metadata/exists checks, directory operations. Keep `StorageManager` as a facade that re-exports from modules for backward compatibility. Internal helpers (`sanitizeInput`, `LogicGates`, type helpers) move to their own files
     - **Files**: `src/StorageManager.ts`, `src/modules/**/*.ts`, `src/helpers/**`, `src/utils/**`
     - **Acceptance**: `StorageManager.*` API unchanged from consumer perspective; `yarn test` passes; no file exceeds ~300 lines
