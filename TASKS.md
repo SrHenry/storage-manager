@@ -30,12 +30,13 @@
 - **Files**: `package.json`, `.husky/pre-commit`, `.lintstagedrc.json`
 - **Acceptance**: Committing a `.ts` file triggers lint + format (auto-fix); committing a malformed `.yml`/`.json` blocks; typecheck and test not in the hook
 
-- [ ] Add dual ESM + CJS build
+- [x] Add dual ESM + CJS build
 - **ID**: dual-build
 - **Blocked by**: ~~add-biome~~ (done), ~~add-vitest~~ (done)
-    - **Details**: Follow the pattern from `@srhenry/type-utils`. Switch `"type": "module"` in package.json. Create `tsconfig.json` (base), `tsconfig.cjs.json` (CJS emit to `dist/cjs/`), `tsconfig.esm.json` (ESM emit to `dist/esm/`). Update `package.json` `exports` map with `import`/`require` conditions. Add `yarn build:clean` script. May need a `scripts/fix-declarations.mjs` step to rewrite `.ts` → `.js` extensions in `.d.ts` files for ESM
-    - **Files**: `tsconfig.json`, `tsconfig.cjs.json`, `tsconfig.esm.json`, `package.json`, `scripts/fix-declarations.mjs`
-    - **Acceptance**: `yarn build` produces both ESM and CJS outputs; `yarn test` passes; consumers can `import` (ESM) and `require` (CJS) the package
+- **Details**: Follow the pattern from `@srhenry/type-utils`. Switch `"type": "module"` in package.json. Create `tsconfig.json` (base), `tsconfig.cjs.json` (CJS emit to `dist/cjs/`), `tsconfig.esm.json` (ESM emit to `dist/esm/`). Update `package.json` `exports` map with `import`/`require` conditions. Add `yarn build:clean` script. May need a `scripts/fix-declarations.mjs` step to rewrite `.ts` → `.js` extensions in `.d.ts` files for ESM
+- **Files**: `tsconfig.json`, `tsconfig.cjs.json`, `tsconfig.esm.json`, `package.json`, `scripts/fix-declarations.mjs`
+- **Acceptance**: `yarn build` produces both ESM and CJS outputs; `yarn test` passes; consumers can `import` (ESM) and `require` (CJS) the package
+- **PR**: [#7](https://github.com/SrHenry/storage-manager/pull/7)
 
 ## P2 — Medium
 
@@ -48,7 +49,7 @@
 
 - [ ] Remove legacy Node version code paths
     - **ID**: remove-legacy-node
-    - **Blocked by**: add-vitest, dual-build
+    - **Blocked by**: ~~add-vitest~~ (done), ~~dual-build~~ (done)
     - **Details**: `mkdir` has a semver check for Node < 10.12.0 and `deleteFromStorage` has one for Node < 12.10.0. Both versions are long EOL. Remove the branches and the `semver` dependency entirely. Also remove `removeLastElement` from `utils.ts` if no other consumers remain
     - **Files**: `src/StorageManager.ts`, `src/utils.ts`, `package.json`
     - **Acceptance**: `semver` removed from dependencies; `mkdir` and `deleteFromStorage` use only the modern code paths; `yarn test` passes
