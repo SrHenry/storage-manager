@@ -3,8 +3,6 @@ import os from 'node:os'
 import Path, { basename, dirname, join } from 'node:path'
 import Stream from 'node:stream'
 
-import { lt } from 'semver'
-
 import { DirectoryList } from './DirectoryList'
 import { type IgnoreUnionType, isAsyncIterable, isIterable, LogicGates } from './utils'
 
@@ -838,32 +836,13 @@ export class StorageManager {
                 fs.unlink(filePath, callback ?? (err => (err ? reject(err) : resolve())))
             )
         else if (metadata.isDirectory()) {
-            if (lt(process.versions.node, '12.10.0 ')) {
-                const dir = await StorageManager.listDirectory(filePath, true)
-
-                const files = Array.from(dir).filter(
-                    (file): file is string => typeof file === 'string'
+            return new Promise<void>((resolve, reject) => {
+                fs.rm(
+                    filePath,
+                    { recursive: true, force: true },
+                    callback ?? (err => (err ? reject(err) : resolve()))
                 )
-
-                const innerDirs = Array.from(dir).filter(
-                    (file): file is DirectoryList => file instanceof DirectoryList
-                )
-
-                for (const file of files) await StorageManager.deleteFromStorage(file)
-                for (const { name } of innerDirs) await StorageManager.deleteFromStorage(name)
-
-                return new Promise<void>((resolve, reject) => {
-                    fs.rmdir(filePath, callback ?? (err => (err ? reject(err) : resolve())))
-                })
-            } else {
-                return new Promise<void>((resolve, reject) => {
-                    fs.rm(
-                        filePath,
-                        { recursive: true, force: true },
-                        callback ?? (err => (err ? reject(err) : resolve()))
-                    )
-                })
-            }
+            })
         }
     }
 
