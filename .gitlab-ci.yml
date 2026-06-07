@@ -5,13 +5,13 @@
 
 # Full project: https://gitlab.com/pages/plain-html
 pages:
-  stage: deploy
-  script:
-    - mkdir .public
-    - cp -r docs/* .public
-    - mv .public public
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    stage: deploy
+    script:
+        - mkdir .public
+        - cp -r docs/* .public
+        - mv .public public
+    artifacts:
+        paths:
+            - public
+    rules:
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
