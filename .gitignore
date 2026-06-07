@@ -8,3 +8,5 @@
 /package-lock.json
 /dir0
 /coverage
+/*.js
+/*.d.ts
