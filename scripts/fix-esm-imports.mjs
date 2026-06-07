@@ -28,7 +28,7 @@ function findFiles(dir, extension) {
 }
 
 function fixFile(filePath) {
-    let content = readFileSync(filePath, 'utf8')
+    const content = readFileSync(filePath, 'utf8')
     const fixed = content.replace(SPECIFIER_REGEX, (match, prefix, quote, specifier) => {
         if (hasExtension(specifier)) return match
         return `${prefix}${quote}${specifier}.js${quote}`
