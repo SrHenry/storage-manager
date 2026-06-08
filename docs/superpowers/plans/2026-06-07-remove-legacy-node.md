@@ -267,8 +267,8 @@ Expected: Build succeeds, 47 tests pass
 
 - [ ] **Step 3: Verify semver fully removed from direct dependencies**
 
-Run: `grep -E '"semver"' package.json`
-Expected: No output (semver not in dependencies or devDependencies)
+Run: `grep -E '"semver"|@types/semver' package.json`
+Expected: No output (semver and @types/semver not in dependencies or devDependencies)
 
 Run: `grep -r "semver" src/`
 Expected: No output (no semver imports in source)
