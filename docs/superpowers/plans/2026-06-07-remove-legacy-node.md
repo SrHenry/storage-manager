@@ -216,7 +216,7 @@ These are untracked files (not in git) — they are stale compiled output from b
 - [ ] **Step 1: Delete the stale root artifacts**
 
 ```bash
-rm DirectoryList.js DirectoryList.d.ts StorageManager.js StorageManager.d.ts index.js index.d.ts utils.js utils.d.ts
+rm -f DirectoryList.js DirectoryList.d.ts StorageManager.js StorageManager.d.ts index.js index.d.ts utils.js utils.d.ts
 ```
 
 - [ ] **Step 2: Verify files are gone**
