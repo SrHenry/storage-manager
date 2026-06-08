@@ -20,6 +20,13 @@ describe('StorageManager.mkdir', () => {
         await StorageManager.mkdir(deepDir, { recursive: true })
         expect(await StorageManager.isDirectory(deepDir)).toBe(true)
     })
+
+    it('resolves when directory already exists (EEXIST)', async () => {
+        dir = tmpDir()
+        const subDir = `${dir}/existing-dir`
+        await StorageManager.mkdir(subDir)
+        await expect(StorageManager.mkdir(subDir)).resolves.toBeNull()
+    })
 })
 
 describe('StorageManager.listDirectory', () => {
