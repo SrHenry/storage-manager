@@ -832,16 +832,22 @@ export class StorageManager {
     ): Promise<void> {
         const metadata = await StorageManager.stats(filePath)
         if (metadata.isFile() || metadata.isSymbolicLink())
-            return new Promise((resolve, reject) =>
-                fs.unlink(filePath, callback ?? (err => (err ? reject(err) : resolve())))
-            )
+            return new Promise((resolve, reject) => {
+                const done = (err: NodeJS.ErrnoException | null) => {
+                    callback?.(err)
+                    if (err) reject(err)
+                    else resolve()
+                }
+                fs.unlink(filePath, done)
+            })
         else if (metadata.isDirectory()) {
             return new Promise<void>((resolve, reject) => {
-                fs.rm(
-                    filePath,
-                    { recursive: true, force: true },
-                    callback ?? (err => (err ? reject(err) : resolve()))
-                )
+                const done = (err: NodeJS.ErrnoException | null) => {
+                    callback?.(err)
+                    if (err) reject(err)
+                    else resolve()
+                }
+                fs.rm(filePath, { recursive: true, force: true }, done)
             })
         }
     }

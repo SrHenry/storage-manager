@@ -16,7 +16,7 @@ Additionally, the repo root contains three stale compiled files (`StorageManager
 
 - **Remove** `import { lt } from 'semver'` (line 6)
 - **`mkdir` (line 820):** Remove the entire `lt(process.versions.node, '10.12.0')` branch (manual split/join mkdir loop). Keep only `fs.mkdir(path, options, preHandler)`
-- **`deleteFromStorage` (line 856):** Remove the entire `lt(process.versions.node, '12.10.0')` branch (manual recursive delete with `fs.rmdir`). Keep only `fs.rm(filePath, { recursive: true, force: true }, ...)` for directory deletion
+- **`deleteFromStorage` (line 856):** Remove the entire `lt(process.versions.node, '12.10.0')` branch (manual recursive delete with `fs.rmdir`). Keep only `fs.rm(filePath, { recursive: true, force: true }, ...)` for directory deletion. Fix pre-existing bug: when `callback` is provided, the Promise never settled because `callback` was forwarded directly to `fs.unlink`/`fs.rm` instead of wrapping it. Now both paths use a `done` helper that calls the callback AND settles the Promise.
 
 ### `package.json`
 
@@ -45,5 +45,5 @@ No changes needed — `removeLastElement` does not exist in source (only in stal
 - Stale root artifacts (`StorageManager.js`, `utils.js`, `utils.d.ts`) are deleted
 - `yarn build` succeeds
 - `npx tsc --noEmit` passes
-- `yarn test` passes (46 tests)
+- `yarn test` passes (47 tests)
 - `yarn qa` passes

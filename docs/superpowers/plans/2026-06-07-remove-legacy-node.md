@@ -76,7 +76,7 @@ Expected: PASS (no type errors)
 - [ ] **Step 4: Run tests**
 
 Run: `yarn test`
-Expected: 46 tests pass
+Expected: 47 tests pass
 
 - [ ] **Step 5: Commit**
 
@@ -142,7 +142,7 @@ Expected: PASS
 - [ ] **Step 3: Run tests**
 
 Run: `yarn test`
-Expected: 46 tests pass
+Expected: 47 tests pass
 
 - [ ] **Step 4: Commit**
 
@@ -190,7 +190,7 @@ Expected: No output (no references to semver remain)
 - [ ] **Step 4: Run full QA + tests**
 
 Run: `yarn qa && yarn test`
-Expected: typecheck passes, lint passes (39 warnings pre-existing), format passes, 46 tests pass
+Expected: typecheck passes, lint passes (39 warnings pre-existing), format passes, 47 tests pass
 
 - [ ] **Step 5: Run build**
 
@@ -227,7 +227,7 @@ Expected: "No such file or directory" (or similar — no matches)
 - [ ] **Step 3: Verify build still works**
 
 Run: `yarn build && yarn test`
-Expected: Build succeeds, 46 tests pass
+Expected: Build succeeds, 47 tests pass
 
 - [ ] **Step 4: Add root `*.js` and `*.d.ts` to `.gitignore`**
 
@@ -263,12 +263,15 @@ Expected: typecheck + lint + format all pass
 - [ ] **Step 2: Run build + tests**
 
 Run: `yarn build && yarn test`
-Expected: Build succeeds, 46 tests pass
+Expected: Build succeeds, 47 tests pass
 
-- [ ] **Step 3: Verify no semver in node_modules**
+- [ ] **Step 3: Verify semver fully removed from direct dependencies**
 
-Run: `ls node_modules/semver 2>&1`
-Expected: "No such file or directory"
+Run: `grep -E '"semver"' package.json`
+Expected: No output (semver not in dependencies or devDependencies)
+
+Run: `grep -r "semver" src/`
+Expected: No output (no semver imports in source)
 
 - [ ] **Step 4: Verify no stale root artifacts**
 
