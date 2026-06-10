@@ -42,24 +42,26 @@ If the request is vague or ambiguous: ask targeted questions. Better to over-cla
 
 ## Build & Development Commands
 
-| Command              | Purpose                                                                       |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `yarn install`       | Install dependencies (required after checkout)                                |
-| `yarn build`         | Dual ESM + CJS build (ESM → `dist/esm/`, CJS → `dist/cjs/`, types → `types/`) |
-| `yarn build:esm`     | ESM build only                                                                |
-| `yarn build:cjs`     | CJS build only (creates `dist/cjs/package.json`)                              |
-| `yarn build:fix-esm` | Post-build: add `.js` extensions to ESM imports                               |
-| `yarn docs`          | Generate TypeDoc to `typedoc-site/`                                           |
-| `yarn test`          | Run Vitest                                                                    |
-| `yarn test:coverage` | Run Vitest with v8 coverage                                                   |
-| `yarn lint`          | Biome lint                                                                    |
-| `yarn lint:fix`      | Biome lint with auto-fix                                                      |
-| `yarn format`        | Prettier check                                                                |
-| `yarn format:fix`    | Prettier write                                                                |
-| `yarn qa`            | Biome lint + Prettier check                                                   |
-| `yarn qa:fix`        | Biome lint --write + Prettier write                                           |
-| `yarn prepare`       | Install Husky git hooks                                                       |
-| `npx tsc --noEmit`   | Typecheck only (no emit)                                                      |
+| Command                        | Purpose                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `yarn install`                 | Install dependencies (required after checkout)                                  |
+| `yarn build`                   | Full pipeline: generate-adapters → clean → ESM → fix-esm → CJS                  |
+| `yarn build:generate-adapters` | Auto-generate `src/adapters/auto-register.ts` from `src/adapters/*/register.ts` |
+| `yarn build:clean`             | Remove `dist/` and `types/` before build                                        |
+| `yarn build:esm`               | ESM build only                                                                  |
+| `yarn build:cjs`               | CJS build only (creates `dist/cjs/package.json`)                                |
+| `yarn build:fix-esm`           | Post-build: add `.js` extensions to ESM imports                                 |
+| `yarn docs`                    | Generate TypeDoc to `typedoc-site/`                                             |
+| `yarn test`                    | Run Vitest                                                                      |
+| `yarn test:coverage`           | Run Vitest with v8 coverage                                                     |
+| `yarn lint`                    | Biome lint                                                                      |
+| `yarn lint:fix`                | Biome lint with auto-fix                                                        |
+| `yarn format`                  | Prettier check                                                                  |
+| `yarn format:fix`              | Prettier write                                                                  |
+| `yarn qa`                      | Biome lint + Prettier check                                                     |
+| `yarn qa:fix`                  | Biome lint --write + Prettier write                                             |
+| `yarn prepare`                 | Install Husky git hooks                                                         |
+| `npx tsc --noEmit`             | Typecheck only (no emit)                                                        |
 
 No watch mode configured. Re-run `yarn build` after changes.
 
@@ -74,11 +76,48 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 ## Architecture
 
 - Single package, no monorepo
-- Entrypoint chain: `index.ts` → re-exports `src/index.ts` → exports `StorageManager` (static class), `DirectoryList`, and destructured static methods
-- `StorageManager` is a static-only class (private constructor); all methods are `StorageManager.*`
+- Entrypoint chain: `index.ts` → re-exports `src/index.ts` → exports standalone domain functions, `fs` convenience object, adapter types, bootstrap utilities
+- `StorageManager` class removed (2.0.0) — all API is standalone function exports
 - `src/` is the only source directory. Build output: `dist/esm/` (ESM JS), `dist/cjs/` (CJS JS), `types/` (declarations). All three are gitignored and published via `"files": ["dist", "types"]`
 - `tsconfig.json` is base-only (`noEmit: true`). Build configs: `tsconfig.esm.json`, `tsconfig.cjs.json`
 - Post-build script `scripts/fix-esm-imports.mjs` adds `.js` extensions to relative imports in ESM output and declarations
+- Build pipeline: `build:generate-adapters` → `build:clean` → `build:esm` → `build:fix-esm` → `build:cjs`
+
+### Source structure
+
+```
+src/
+  index.ts          — main entry: re-exports domains, adapters, bootstrap, types, errors + fs object
+  bootstrap.ts      — lazy singleton _bootstrap(), setFS(), useAdapter(), _getAdapter()
+  read/             — get, getAsBuffer, getAsBuffers, getAsJSON (one function per file)
+  write/            — put, putStreamed, append, appendStreamed
+  stream/           — fileStream (with mode overloads), readStream, writeStream, duplexStream
+  metadata/         — exists, doesntExist, stats, isFile, isDirectory
+  directory/        — mkdir, listDirectory (with recursive overloads), copy, rename, move, deleteFromStorage, deleteFile, DirectoryList
+  shared/           — types/ (Input, FileStreamMode, DirectoryListTypes), utils/ (isIterable, isAsyncIterable, sanitizeInput, IgnoreUnionType), errors/ (UnsupportedEnvironmentError)
+  adapters/
+    interfaces/     — ReadAdapter, WriteAdapter, StreamAdapter, DirAdapter, MetaAdapter, FsAdapter, RuntimeResolver, BlobStorageAdapter
+    resolve.ts      — centralized registry: registerRuntime(), detectRuntime(), resolveAdapter()
+    auto-register.ts — auto-generated side-effect imports (generated by scripts/generate-adapter-registrations.mjs)
+    node/           — NodeFsAdapter, detect.ts, resolver.ts, register.ts
+  types/            — legacy type helpers (TypeOfTag)
+```
+
+### Adapter architecture
+
+- **RuntimeResolver** interface: `runtime: string`, `matchesEnvironment(): boolean`, `create(): FsAdapter`
+- Centralized registry in `src/adapters/resolve.ts` — no hardcoded adapter imports
+- Each adapter in `src/adapters/<runtime>/` provides: `detect.ts` (matchesEnvironment), `resolver.ts` (RuntimeResolver object), `register.ts` (side-effect: calls registerRuntime), `index.ts` (barrel)
+- `scripts/generate-adapter-registrations.mjs` scans `src/adapters/*/register.ts` and generates `auto-register.ts`
+- Adding a new adapter = create directory with convention files + re-run generator (or `yarn build`)
+
+### Bootstrap flow
+
+1. Domain functions call `_getAdapter()` which calls `_bootstrap()` (lazy, runs once)
+2. `_bootstrap()` calls `resolveAdapter()` which iterates the registry
+3. First resolver whose `matchesEnvironment()` returns true wins → its `create()` provides the adapter
+4. If no resolver matches, `_getAdapter()` throws `UnsupportedEnvironmentError`
+5. `setFS(adapter)` short-circuits bootstrap — installs adapter directly
 
 ### Test Layout
 
@@ -216,10 +255,13 @@ for remote in $(git remote); do git push "$remote" --delete feat/<topic> || echo
 - `fix-esm-imports.mjs` must run after ESM build but before CJS build (CJS doesn't need extension rewriting — Node `require()` resolves extensions automatically)
 - `dist/cjs/package.json` with `{"type":"commonjs"}` is created during `build:cjs` — this is required because top-level `package.json` has `"type": "module"`
 - Source imports are extensionless. The ESM build emits extensionless specifiers, which `fix-esm-imports.mjs` then rewrites to `.js`. Do NOT add `.js` extensions to source imports
-- `mkdir` has a legacy code path for Node < 10.12.0 (semver check); `deleteFromStorage` has one for Node < 12.10.0
 - `appendStreamed` with a single `Input` value falls through to `putStreamed` (not `append`) when file doesn't exist
 - `developer` vs `master`: Most PRs target `developer`. If `developer` is behind `master`, merge `master` into `developer` first, then rebase the feature branch
-- Only dependency besides Node built-ins: `semver` (used for legacy Node version checks in `mkdir` and `deleteFromStorage`)
+- `auto-register.ts` is auto-generated but committed (like a lockfile) — `tsc --noEmit` and `yarn test` require it for fresh clones; regenerate via `yarn build:generate-adapters`
+- `delete` is a reserved keyword — directory module uses `const deleteFile` + `export { deleteFile as delete }`; the `fs` object uses `delete: deleteFile`
+- `BufferEncoding` is a global type — NOT exported from `node:fs`
+- `fileStream` and `listDirectory` use TypeScript overloads instead of `as any` casts — do not revert to `as any`
+- Zero runtime dependencies (semver removed in PR #8, legacy Node code paths removed)
 
 ## Prohibitions
 
