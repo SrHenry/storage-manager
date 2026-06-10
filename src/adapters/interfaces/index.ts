@@ -1,3 +1,4 @@
+export type { RuntimeResolver } from './RuntimeResolver'
 export type { ReadAdapter } from './ReadAdapter'
 export type { WriteAdapter } from './WriteAdapter'
 export type { StreamAdapter } from './StreamAdapter'

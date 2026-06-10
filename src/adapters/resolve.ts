@@ -1,5 +1,5 @@
 import type { FsAdapter } from './interfaces/FsAdapter'
-import type { RuntimeResolver } from './RuntimeResolver'
+import type { RuntimeResolver } from './interfaces/RuntimeResolver'
 
 const registry: RuntimeResolver[] = []
 

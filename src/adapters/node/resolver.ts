@@ -1,4 +1,4 @@
-import type { RuntimeResolver } from '../RuntimeResolver'
+import type { RuntimeResolver } from '../interfaces/RuntimeResolver'
 import { NodeFsAdapter } from './NodeFsAdapter'
 import { matchesEnvironment } from './detect'
 

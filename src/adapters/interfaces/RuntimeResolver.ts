@@ -1,4 +1,4 @@
-import type { FsAdapter } from './interfaces/FsAdapter'
+import type { FsAdapter } from './FsAdapter'
 
 /**
  * A runtime resolver probes the environment and produces an FsAdapter
