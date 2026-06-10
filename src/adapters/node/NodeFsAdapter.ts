@@ -4,7 +4,7 @@ import Path, { basename, dirname, join } from 'node:path'
 import Stream from 'node:stream'
 
 import type { FsAdapter } from '../interfaces/FsAdapter'
-import type { DirectoryList } from '../../DirectoryList'
+import { DirectoryList } from '../../DirectoryList'
 import type {
     FileStreamMode,
     FileStreamType,
