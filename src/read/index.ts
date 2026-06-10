@@ -1,5 +1,3 @@
-import type { BufferEncoding } from 'node:fs'
-
 import { _getAdapter } from '../bootstrap'
 
 export async function get(path: string, encoding: BufferEncoding = 'utf-8') {

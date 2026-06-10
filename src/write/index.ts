@@ -1,5 +1,3 @@
-import type { BufferEncoding } from 'node:fs'
-
 import type { Input } from '../shared/types'
 import { _getAdapter } from '../bootstrap'
 
