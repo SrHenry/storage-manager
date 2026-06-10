@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { NodeFsAdapter } from '../node/NodeFsAdapter'
-import { detectRuntime, resolveAdapter } from '../node/resolve'
+import { matchesEnvironment as matchesNodeEnvironment } from '../node/detect'
+import { nodeResolver } from '../node/resolver'
+import '../node/register'
+import { detectRuntime, resolveAdapter, registerRuntime } from '../resolve'
 
 describe('NodeFsAdapter', () => {
     it('implements FsAdapter interface', () => {
@@ -39,13 +42,33 @@ describe('NodeFsAdapter', () => {
     })
 })
 
-describe('resolveAdapter', () => {
+describe('nodeResolver', () => {
     it('detects Node.js runtime', () => {
+        expect(matchesNodeEnvironment()).toBe(true)
+        expect(nodeResolver.matchesEnvironment()).toBe(true)
+        expect(nodeResolver.runtime).toBe('node')
+    })
+})
+
+describe('resolveAdapter (registry)', () => {
+    it('detects Node.js as current runtime', () => {
         expect(detectRuntime()).toBe('node')
     })
 
-    it('returns a NodeFsAdapter for Node.js', () => {
+    it('resolves to a NodeFsAdapter', () => {
         const adapter = resolveAdapter()
         expect(adapter).toBeInstanceOf(NodeFsAdapter)
+    })
+
+    it('allows registering custom resolvers', () => {
+        const customResolver = {
+            runtime: 'test',
+            matchesEnvironment: () => false,
+            create: () => new NodeFsAdapter(),
+        }
+        registerRuntime(customResolver)
+
+        // Still resolves to Node because test resolver doesn't detect
+        expect(detectRuntime()).toBe('node')
     })
 })

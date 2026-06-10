@@ -1,5 +1,5 @@
 import type fs from 'node:fs'
-import type { DirectoryList } from '../../DirectoryList'
+import type { DirectoryList } from '../../directory/DirectoryList'
 
 export interface DirAdapter {
     mkdir(path: string, options?: fs.MakeDirectoryOptions): Promise<void>

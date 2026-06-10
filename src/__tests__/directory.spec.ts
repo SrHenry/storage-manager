@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { DirectoryList } from '../DirectoryList'
+import { DirectoryList } from '../directory/DirectoryList'
 import { mkdir, listDirectory, deleteFromStorage, put, exists, isDirectory } from '..'
 import { cleanup, tmpDir } from './helpers'
 

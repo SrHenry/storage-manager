@@ -4,7 +4,7 @@ import Path, { basename, dirname, join } from 'node:path'
 import Stream from 'node:stream'
 
 import type { FsAdapter } from '../interfaces/FsAdapter'
-import { DirectoryList } from '../../DirectoryList'
+import { DirectoryList } from '../../directory/DirectoryList'
 import type {
     FileStreamMode,
     FileStreamType,
@@ -147,12 +147,12 @@ export class NodeFsAdapter implements FsAdapter {
         return Buffer.concat(await this.getAsBuffers(path))
     }
 
-    public async getAsJSON(
+    public async getAsJSON<T = unknown>(
         path: string,
         encoding: BufferEncoding = 'utf8',
         // biome-ignore lint/suspicious/noExplicitAny: JSON reviver requires any
         reviver?: (this: any, key: string, value: any) => any
-    ) {
+    ): Promise<T> {
         return JSON.parse(await this.get(path, encoding), reviver)
     }
 
@@ -324,10 +324,9 @@ export class NodeFsAdapter implements FsAdapter {
                 })
             })
         } else {
-            const err: NodeJS.ErrnoException = { ...new Error() }
+            const err: NodeJS.ErrnoException & { errno?: number } = { ...new Error() }
             err.code = 'ENOENT'
-            // biome-ignore lint/suspicious/noExplicitAny: errno is not on ErrnoException type
-            ;(err as any).errno = os.constants.errno.ENOENT
+            err.errno = os.constants.errno.ENOENT
             err.path = path
             Error.captureStackTrace(err)
             throw err

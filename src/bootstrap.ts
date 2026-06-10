@@ -1,5 +1,5 @@
 import type { FsAdapter } from './adapters/interfaces/FsAdapter'
-import { detectRuntime, resolveAdapter } from './adapters/node/resolve'
+import { detectRuntime, resolveAdapter } from './adapters/resolve'
 import { UnsupportedEnvironmentError } from './shared/errors/UnsupportedEnvironmentError'
 
 let _adapter: FsAdapter | null = null

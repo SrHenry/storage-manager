@@ -37,7 +37,8 @@ export type {
     BlobStats,
 } from './adapters'
 export { NodeFsAdapter } from './adapters'
-export { detectRuntime, resolveAdapter } from './adapters'
+export { detectRuntime, resolveAdapter, registerRuntime } from './adapters'
+export type { RuntimeResolver } from './adapters'
 
 // Bootstrap & configuration exports
 export { bootstrap, setFS, useAdapter } from './bootstrap'
@@ -50,7 +51,7 @@ export type { ValidInput, Input } from './shared/types'
 export type { RecursiveType, DirectoryListJSONContent, DirectoryListJSON } from './shared/types'
 
 // Domain class exports
-export { DirectoryList, Directory } from './DirectoryList'
+export { DirectoryList, Directory } from './directory/DirectoryList'
 
 // fs convenience object (default + named export)
 import { get, getAsBuffer, getAsBuffers, getAsJSON } from './read'
