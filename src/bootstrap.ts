@@ -1,4 +1,5 @@
 import type { FsAdapter } from './adapters/interfaces/FsAdapter'
+import './adapters/auto-register'
 import { detectRuntime, resolveAdapter } from './adapters/resolve'
 import { UnsupportedEnvironmentError } from './shared/errors/UnsupportedEnvironmentError'
 

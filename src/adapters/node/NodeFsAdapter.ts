@@ -337,7 +337,7 @@ export class NodeFsAdapter implements FsAdapter {
             return new Promise((resolve, reject) => {
                 fs.lstat(path, (err, stats) => {
                     if (err) reject(err)
-                    resolve(stats.isFile())
+                    else resolve(stats.isFile())
                 })
             })
         } else return false
@@ -348,7 +348,7 @@ export class NodeFsAdapter implements FsAdapter {
             return new Promise((resolve, reject) => {
                 fs.lstat(path, (err, stats) => {
                     if (err) reject(err)
-                    resolve(stats.isDirectory())
+                    else resolve(stats.isDirectory())
                 })
             })
         } else return false
