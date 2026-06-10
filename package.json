@@ -14,6 +14,42 @@
             "require": "./dist/cjs/index.js",
             "default": "./dist/esm/index.js"
         },
+        "./read": {
+            "types": "./types/read/index.d.ts",
+            "import": "./dist/esm/read/index.js",
+            "require": "./dist/cjs/read/index.js",
+            "default": "./dist/esm/read/index.js"
+        },
+        "./write": {
+            "types": "./types/write/index.d.ts",
+            "import": "./dist/esm/write/index.js",
+            "require": "./dist/cjs/write/index.js",
+            "default": "./dist/esm/write/index.js"
+        },
+        "./stream": {
+            "types": "./types/stream/index.d.ts",
+            "import": "./dist/esm/stream/index.js",
+            "require": "./dist/cjs/stream/index.js",
+            "default": "./dist/esm/stream/index.js"
+        },
+        "./metadata": {
+            "types": "./types/metadata/index.d.ts",
+            "import": "./dist/esm/metadata/index.js",
+            "require": "./dist/cjs/metadata/index.js",
+            "default": "./dist/esm/metadata/index.js"
+        },
+        "./directory": {
+            "types": "./types/directory/index.d.ts",
+            "import": "./dist/esm/directory/index.js",
+            "require": "./dist/cjs/directory/index.js",
+            "default": "./dist/esm/directory/index.js"
+        },
+        "./adapters": {
+            "types": "./types/adapters/index.d.ts",
+            "import": "./dist/esm/adapters/index.js",
+            "require": "./dist/cjs/adapters/index.js",
+            "default": "./dist/esm/adapters/index.js"
+        },
         "./package.json": "./package.json"
     },
     "files": [
