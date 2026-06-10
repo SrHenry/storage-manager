@@ -85,7 +85,7 @@ NEVER skip `tsc --noEmit` after code changes — typecheck is mandatory, not opt
 
 ### Source structure
 
-```
+```text
 src/
   index.ts          — main entry: re-exports domains, adapters, bootstrap, types, errors + fs object
   bootstrap.ts      — lazy singleton _bootstrap(), setFS(), useAdapter(), _getAdapter()

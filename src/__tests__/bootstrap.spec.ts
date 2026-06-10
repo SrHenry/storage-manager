@@ -3,6 +3,38 @@ import { bootstrap, setFS, useAdapter, _getAdapter } from '../bootstrap'
 import type { FsAdapter } from '../adapters/interfaces/FsAdapter'
 import { UnsupportedEnvironmentError } from '../shared/errors'
 
+function createMockFsAdapter(overrides: Partial<FsAdapter> = {}): FsAdapter {
+    return {
+        get: vi.fn(),
+        getAsBuffer: vi.fn(),
+        getAsBuffers: vi.fn(),
+        getAsJSON: vi.fn(),
+        put: vi.fn(),
+        putStreamed: vi.fn(),
+        append: vi.fn(),
+        appendStreamed: vi.fn(),
+        readStream: vi.fn(),
+        writeStream: vi.fn(),
+        duplexStream: vi.fn(),
+        fileStream: vi.fn(),
+        exists: vi.fn(),
+        doesntExist: vi.fn(),
+        stats: vi.fn(),
+        isFile: vi.fn(),
+        isDirectory: vi.fn(),
+        listDirectory: vi.fn(),
+        mkdir: vi.fn(),
+        copy: vi.fn(),
+        rename: vi.fn(),
+        move: vi.fn(),
+        deleteFromStorage: vi.fn(),
+        delete: vi.fn(),
+        constants: {},
+        path: {},
+        ...overrides,
+    } as FsAdapter
+}
+
 describe('bootstrap', () => {
     it('is idempotent — calling multiple times does not throw', () => {
         bootstrap()
@@ -11,7 +43,7 @@ describe('bootstrap', () => {
     })
 
     it('setFS installs a custom adapter', () => {
-        const mockAdapter = {} as FsAdapter
+        const mockAdapter = createMockFsAdapter()
         setFS(mockAdapter)
         expect(_getAdapter()).toBe(mockAdapter)
     })
@@ -19,34 +51,7 @@ describe('bootstrap', () => {
 
 describe('useAdapter', () => {
     it('returns a frozen object with all FS methods', () => {
-        const mockAdapter = {
-            get: vi.fn(),
-            put: vi.fn(),
-            putStreamed: vi.fn(),
-            append: vi.fn(),
-            appendStreamed: vi.fn(),
-            getAsBuffer: vi.fn(),
-            getAsBuffers: vi.fn(),
-            getAsJSON: vi.fn(),
-            rename: vi.fn(),
-            move: vi.fn(),
-            copy: vi.fn(),
-            readStream: vi.fn(),
-            writeStream: vi.fn(),
-            duplexStream: vi.fn(),
-            fileStream: vi.fn(),
-            exists: vi.fn(),
-            doesntExist: vi.fn(),
-            stats: vi.fn(),
-            isFile: vi.fn(),
-            isDirectory: vi.fn(),
-            listDirectory: vi.fn(),
-            mkdir: vi.fn(),
-            deleteFromStorage: vi.fn(),
-            delete: vi.fn(),
-            constants: {},
-            path: {},
-        } as unknown as FsAdapter
+        const mockAdapter = createMockFsAdapter()
 
         const scoped = useAdapter(mockAdapter)
 
@@ -57,36 +62,8 @@ describe('useAdapter', () => {
     })
 
     it('does not mutate the global adapter', () => {
-        const noop = () => {}
-        const globalAdapter = {} as FsAdapter
-        const scopedAdapter = {
-            get: noop,
-            put: noop,
-            putStreamed: noop,
-            append: noop,
-            appendStreamed: noop,
-            getAsBuffer: noop,
-            getAsBuffers: noop,
-            getAsJSON: noop,
-            rename: noop,
-            move: noop,
-            copy: noop,
-            readStream: noop,
-            writeStream: noop,
-            duplexStream: noop,
-            fileStream: noop,
-            exists: noop,
-            doesntExist: noop,
-            stats: noop,
-            isFile: noop,
-            isDirectory: noop,
-            listDirectory: noop,
-            mkdir: noop,
-            deleteFromStorage: noop,
-            delete: noop,
-            constants: {},
-            path: {},
-        } as unknown as FsAdapter
+        const globalAdapter = createMockFsAdapter()
+        const scopedAdapter = createMockFsAdapter()
 
         setFS(globalAdapter)
         const before = _getAdapter()

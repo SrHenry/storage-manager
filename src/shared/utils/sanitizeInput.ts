@@ -16,6 +16,5 @@ export function sanitizeInput<T = unknown>(input: T): string
 export function sanitizeInput(input: any): ValidInput {
     if (Buffer.isBuffer(input) || typeof input === 'string') return input
     else if (Array.isArray(input) || typeof input === 'object') return JSON.stringify(input)
-    else if ('toString' in input) return input.toString()
-    else return `${input}`
+    else return String(input)
 }

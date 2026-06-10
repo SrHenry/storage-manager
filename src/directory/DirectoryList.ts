@@ -81,7 +81,7 @@ export class DirectoryList {
         for (const row of directoriesFirst) {
             if (row instanceof DirectoryList) str += row.__toString(deep + 1, traceChar, padUnit)
             else {
-                const out = `File: ${row}\n`
+                const out = `File: ${basename(row)}\n`
                 str += out.padStart(out.length + (deep + 1) * padUnit, traceChar)
             }
         }
@@ -100,7 +100,7 @@ export class DirectoryList {
     public get(fullname = false): DirectoryListJSONContent {
         return this.struct.map(item => {
             if (item instanceof DirectoryList) return item.toJSON(fullname, false)
-            else return item
+            else return fullname ? item : basename(item)
         })
     }
 

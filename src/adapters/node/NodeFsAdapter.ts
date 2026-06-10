@@ -22,7 +22,7 @@ export class NodeFsAdapter implements FsAdapter {
     readonly path = Path
 
     public async put(path: string, value: Input, charset: BufferEncoding = 'utf-8') {
-        if (path.split('/').length > 1) await this.mkdir(dirname(path), { recursive: true })
+        if (dirname(path) !== '.') await this.mkdir(dirname(path), { recursive: true })
         return new Promise<boolean>((resolve, reject) => {
             try {
                 const stream = this.fileStream(path, 'w')
@@ -42,7 +42,7 @@ export class NodeFsAdapter implements FsAdapter {
         values: AsyncIterable<Input> | Iterable<Input> | Input,
         charset: BufferEncoding = 'utf-8'
     ): Promise<void> {
-        if (path.split('/').length > 1) await this.mkdir(dirname(path), { recursive: true })
+        if (dirname(path) !== '.') await this.mkdir(dirname(path), { recursive: true })
 
         const writeFactory = (path: string, encoding: BufferEncoding) => {
             const ws = this.fileStream(path, 'w')
@@ -130,7 +130,7 @@ export class NodeFsAdapter implements FsAdapter {
     }
 
     public async getAsBuffers(path: string) {
-        if (!(await this.exists(path))) throw null
+        if (!(await this.exists(path))) throw new Error(`Path not found: ${path}`)
         return new Promise<Buffer[]>(resolve => {
             const arraybuffer: Buffer[] = []
             const readStream = this.fileStream(path, 'r')
@@ -173,9 +173,7 @@ export class NodeFsAdapter implements FsAdapter {
     }
 
     public async copy(from: string, to: string, as?: string): Promise<void> {
-        const stats = await this.stats(from).catch(err => {
-            throw err
-        })
+        const stats = await this.stats(from)
         if (stats) {
             const dest = join(to, as ?? basename(from))
             if (stats.isFile()) {
@@ -195,8 +193,8 @@ export class NodeFsAdapter implements FsAdapter {
                 const innerDirs = Array.from(dir).filter(
                     (file): file is DirectoryList => file instanceof DirectoryList
                 )
-                for (const file of files) await this.copy(join(from, file), dest)
-                for (const { name } of innerDirs) await this.copy(join(name), dest)
+                for (const file of files) await this.copy(file, dest)
+                for (const { name } of innerDirs) await this.copy(name, dest)
             }
         }
     }
@@ -284,7 +282,8 @@ export class NodeFsAdapter implements FsAdapter {
                     write: w.write.bind(w),
                 }
                 for (const [key, value] of Object.entries(options))
-                    streamOptions[key as keyof FileStreamOptionsType<typeof mode>] = value
+                    if (key !== 'read' && key !== 'write')
+                        streamOptions[key as keyof FileStreamOptionsType<typeof mode>] = value
                 const stream = new Stream.Duplex(streamOptions)
                 return stream
             }
@@ -392,7 +391,7 @@ export class NodeFsAdapter implements FsAdapter {
                         resolve(
                             new DirectoryList(
                                 path,
-                                [...chain, ...files.map(([_]) => _)],
+                                [...chain, ...files.map(([_, fullpath]) => fullpath)],
                                 await this.stats(path)
                             )
                         )

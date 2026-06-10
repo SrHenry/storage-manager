@@ -7,8 +7,13 @@ let _bootstrapped = false
 
 export function _bootstrap(): void {
     if (_bootstrapped) return
-    _bootstrapped = true
-    _adapter = resolveAdapter()
+    try {
+        _adapter = resolveAdapter()
+        _bootstrapped = true
+    } catch (error) {
+        _bootstrapped = false
+        throw error
+    }
 }
 
 export function bootstrap(): void {
