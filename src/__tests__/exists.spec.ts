@@ -1,115 +1,115 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { StorageManager } from '../StorageManager'
+import { exists, doesntExist, stats, isFile, isDirectory, put } from '..'
 import { cleanup, tmpDir } from './helpers'
 
-describe('StorageManager.exists', () => {
+describe('exists', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('returns true for an existing file', async () => {
         dir = tmpDir()
         const filePath = `${dir}/exists.txt`
-        await StorageManager.put(filePath, 'yes')
-        expect(await StorageManager.exists(filePath)).toBe(true)
+        await put(filePath, 'yes')
+        expect(await exists(filePath)).toBe(true)
     })
 
     it('returns false for a nonexistent file', async () => {
         dir = tmpDir()
-        expect(await StorageManager.exists(`${dir}/nope.txt`)).toBe(false)
+        expect(await exists(`${dir}/nope.txt`)).toBe(false)
     })
 
     it('returns true for an existing directory', async () => {
         dir = tmpDir()
-        expect(await StorageManager.exists(dir)).toBe(true)
+        expect(await exists(dir)).toBe(true)
     })
 
     it('checks multiple paths with AND logic', async () => {
         dir = tmpDir()
         const fileA = `${dir}/a.txt`
         const fileB = `${dir}/b.txt`
-        await StorageManager.put(fileA, 'a')
-        await StorageManager.put(fileB, 'b')
-        expect(await StorageManager.exists(fileA, fileB)).toBe(true)
-        expect(await StorageManager.exists(fileA, `${dir}/missing.txt`)).toBe(false)
+        await put(fileA, 'a')
+        await put(fileB, 'b')
+        expect(await exists(fileA, fileB)).toBe(true)
+        expect(await exists(fileA, `${dir}/missing.txt`)).toBe(false)
     })
 })
 
-describe('StorageManager.doesntExist', () => {
+describe('doesntExist', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('returns true for a nonexistent path', async () => {
         dir = tmpDir()
-        expect(await StorageManager.doesntExist(`${dir}/ghost.txt`)).toBe(true)
+        expect(await doesntExist(`${dir}/ghost.txt`)).toBe(true)
     })
 
     it('returns false for an existing path', async () => {
         dir = tmpDir()
         const filePath = `${dir}/real.txt`
-        await StorageManager.put(filePath, 'real')
-        expect(await StorageManager.doesntExist(filePath)).toBe(false)
+        await put(filePath, 'real')
+        expect(await doesntExist(filePath)).toBe(false)
     })
 })
 
-describe('StorageManager.stats', () => {
+describe('stats', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('returns stats for an existing file', async () => {
         dir = tmpDir()
         const filePath = `${dir}/stat.txt`
-        await StorageManager.put(filePath, 'stat me')
-        const stats = await StorageManager.stats(filePath)
-        expect(stats.isFile()).toBe(true)
-        expect(stats.size).toBeGreaterThan(0)
+        await put(filePath, 'stat me')
+        const s = await stats(filePath)
+        expect(s.isFile()).toBe(true)
+        expect(s.size).toBeGreaterThan(0)
     })
 
     it('throws ENOENT for nonexistent path', async () => {
         dir = tmpDir()
-        await expect(StorageManager.stats(`${dir}/nope.txt`)).rejects.toThrow()
+        await expect(stats(`${dir}/nope.txt`)).rejects.toThrow()
     })
 })
 
-describe('StorageManager.isFile', () => {
+describe('isFile', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('returns true for a file', async () => {
         dir = tmpDir()
         const filePath = `${dir}/file.txt`
-        await StorageManager.put(filePath, 'file')
-        expect(await StorageManager.isFile(filePath)).toBe(true)
+        await put(filePath, 'file')
+        expect(await isFile(filePath)).toBe(true)
     })
 
     it('returns false for a directory', async () => {
         dir = tmpDir()
-        expect(await StorageManager.isFile(dir)).toBe(false)
+        expect(await isFile(dir)).toBe(false)
     })
 
     it('returns false for nonexistent path', async () => {
         dir = tmpDir()
-        expect(await StorageManager.isFile(`${dir}/nope.txt`)).toBe(false)
+        expect(await isFile(`${dir}/nope.txt`)).toBe(false)
     })
 })
 
-describe('StorageManager.isDirectory', () => {
+describe('isDirectory', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('returns true for a directory', async () => {
         dir = tmpDir()
-        expect(await StorageManager.isDirectory(dir)).toBe(true)
+        expect(await isDirectory(dir)).toBe(true)
     })
 
     it('returns false for a file', async () => {
         dir = tmpDir()
         const filePath = `${dir}/file.txt`
-        await StorageManager.put(filePath, 'file')
-        expect(await StorageManager.isDirectory(filePath)).toBe(false)
+        await put(filePath, 'file')
+        expect(await isDirectory(filePath)).toBe(false)
     })
 
     it('returns false for nonexistent path', async () => {
         dir = tmpDir()
-        expect(await StorageManager.isDirectory(`${dir}/nope`)).toBe(false)
+        expect(await isDirectory(`${dir}/nope`)).toBe(false)
     })
 })

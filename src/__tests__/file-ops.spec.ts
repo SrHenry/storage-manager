@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { StorageManager } from '../StorageManager'
+import { rename, move, copy, fileStream, put, get, exists, mkdir } from '..'
 import { cleanup, tmpDir } from './helpers'
 
-describe('StorageManager.rename', () => {
+describe('rename', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
@@ -10,15 +10,15 @@ describe('StorageManager.rename', () => {
         dir = tmpDir()
         const oldPath = `${dir}/old.txt`
         const newPath = `${dir}/new.txt`
-        await StorageManager.put(oldPath, 'rename me')
-        await StorageManager.rename(oldPath, newPath)
-        expect(await StorageManager.exists(oldPath)).toBe(false)
-        expect(await StorageManager.exists(newPath)).toBe(true)
-        expect(await StorageManager.get(newPath)).toBe('rename me')
+        await put(oldPath, 'rename me')
+        await rename(oldPath, newPath)
+        expect(await exists(oldPath)).toBe(false)
+        expect(await exists(newPath)).toBe(true)
+        expect(await get(newPath)).toBe('rename me')
     })
 })
 
-describe('StorageManager.move', () => {
+describe('move', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
@@ -26,31 +26,31 @@ describe('StorageManager.move', () => {
         dir = tmpDir()
         const srcDir = `${dir}/src`
         const destDir = `${dir}/dest`
-        await StorageManager.mkdir(srcDir, { recursive: true })
-        await StorageManager.mkdir(destDir, { recursive: true })
+        await mkdir(srcDir, { recursive: true })
+        await mkdir(destDir, { recursive: true })
         const filePath = `${srcDir}/move.txt`
-        await StorageManager.put(filePath, 'move me')
-        await StorageManager.move(filePath, destDir)
-        expect(await StorageManager.exists(filePath)).toBe(false)
-        expect(await StorageManager.exists(`${destDir}/move.txt`)).toBe(true)
+        await put(filePath, 'move me')
+        await move(filePath, destDir)
+        expect(await exists(filePath)).toBe(false)
+        expect(await exists(`${destDir}/move.txt`)).toBe(true)
     })
 
     it('moves a file with renaming', async () => {
         dir = tmpDir()
         const srcDir = `${dir}/src`
         const destDir = `${dir}/dest`
-        await StorageManager.mkdir(srcDir, { recursive: true })
-        await StorageManager.mkdir(destDir, { recursive: true })
+        await mkdir(srcDir, { recursive: true })
+        await mkdir(destDir, { recursive: true })
         const filePath = `${srcDir}/orig.txt`
-        await StorageManager.put(filePath, 'move+rename')
-        await StorageManager.move(filePath, destDir, 'renamed.txt')
-        expect(await StorageManager.exists(`${destDir}/renamed.txt`)).toBe(true)
-        const content = await StorageManager.get(`${destDir}/renamed.txt`)
+        await put(filePath, 'move+rename')
+        await move(filePath, destDir, 'renamed.txt')
+        expect(await exists(`${destDir}/renamed.txt`)).toBe(true)
+        const content = await get(`${destDir}/renamed.txt`)
         expect(content).toBe('move+rename')
     })
 })
 
-describe('StorageManager.copy', () => {
+describe('copy', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
@@ -58,48 +58,48 @@ describe('StorageManager.copy', () => {
         dir = tmpDir()
         const srcDir = `${dir}/src`
         const destDir = `${dir}/dest`
-        await StorageManager.mkdir(srcDir, { recursive: true })
-        await StorageManager.mkdir(destDir, { recursive: true })
+        await mkdir(srcDir, { recursive: true })
+        await mkdir(destDir, { recursive: true })
         const filePath = `${srcDir}/copy.txt`
-        await StorageManager.put(filePath, 'copy me')
-        await StorageManager.copy(filePath, destDir)
-        expect(await StorageManager.exists(filePath)).toBe(true)
-        expect(await StorageManager.exists(`${destDir}/copy.txt`)).toBe(true)
-        expect(await StorageManager.get(`${destDir}/copy.txt`)).toBe('copy me')
+        await put(filePath, 'copy me')
+        await copy(filePath, destDir)
+        expect(await exists(filePath)).toBe(true)
+        expect(await exists(`${destDir}/copy.txt`)).toBe(true)
+        expect(await get(`${destDir}/copy.txt`)).toBe('copy me')
     })
 
     it('copies a file with renaming', async () => {
         dir = tmpDir()
         const srcDir = `${dir}/src`
         const destDir = `${dir}/dest`
-        await StorageManager.mkdir(srcDir, { recursive: true })
-        await StorageManager.mkdir(destDir, { recursive: true })
+        await mkdir(srcDir, { recursive: true })
+        await mkdir(destDir, { recursive: true })
         const filePath = `${srcDir}/orig.txt`
-        await StorageManager.put(filePath, 'copy+rename')
-        await StorageManager.copy(filePath, destDir, 'dup.txt')
-        expect(await StorageManager.exists(`${destDir}/dup.txt`)).toBe(true)
+        await put(filePath, 'copy+rename')
+        await copy(filePath, destDir, 'dup.txt')
+        expect(await exists(`${destDir}/dup.txt`)).toBe(true)
     })
 })
 
-describe('StorageManager.fileStream', () => {
+describe('fileStream', () => {
     let dir: string
     afterEach(() => cleanup(dir))
 
     it('creates a writable stream', async () => {
         dir = tmpDir()
         const filePath = `${dir}/stream.txt`
-        const ws = StorageManager.fileStream(filePath, 'w')
+        const ws = fileStream(filePath, 'w')
         expect(ws.writable).toBe(true)
         ws.end('streamed')
         await new Promise<void>(resolve => ws.on('finish', resolve))
-        expect(await StorageManager.get(filePath)).toBe('streamed')
+        expect(await get(filePath)).toBe('streamed')
     })
 
     it('creates a readable stream', async () => {
         dir = tmpDir()
         const filePath = `${dir}/read-stream.txt`
-        await StorageManager.put(filePath, 'readable')
-        const rs = StorageManager.fileStream(filePath, 'r')
+        await put(filePath, 'readable')
+        const rs = fileStream(filePath, 'r')
         expect(rs.readable).toBe(true)
         const chunks: Buffer[] = []
         rs.on('data', (chunk: Buffer) => chunks.push(chunk))

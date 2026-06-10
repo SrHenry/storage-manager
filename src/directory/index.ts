@@ -1,0 +1,8 @@
+export { DirectoryList, Directory } from './DirectoryList'
+export { mkdir } from './mkdir'
+export { listDirectory } from './listDirectory'
+export { copy } from './copy'
+export { rename } from './rename'
+export { move } from './move'
+export { deleteFromStorage } from './deleteFromStorage'
+export { deleteFile, deleteFile as delete } from './deleteFile'

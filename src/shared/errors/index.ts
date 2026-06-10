@@ -1,0 +1,1 @@
+export { UnsupportedEnvironmentError } from './UnsupportedEnvironmentError'

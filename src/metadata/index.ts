@@ -1,0 +1,5 @@
+export { exists } from './exists'
+export { doesntExist } from './doesntExist'
+export { stats } from './stats'
+export { isFile } from './isFile'
+export { isDirectory } from './isDirectory'

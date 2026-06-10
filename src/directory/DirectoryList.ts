@@ -1,14 +1,8 @@
-import { Stats } from 'node:fs'
+import type { Stats } from 'node:fs'
 import { basename } from 'node:path'
 
-import { TypeOfTag } from './types/TypeOfTag'
-
-export type RecursiveType<T> = T | RecursiveType<T>[]
-
-export type DirectoryListJSONContent = Array<string | DirectoryListJSON>
-export type DirectoryListJSON = {
-    [name: string]: Array<string | DirectoryListJSON>
-}
+import type { TypeOfTag } from '../types/TypeOfTag'
+import type { DirectoryListJSONContent, DirectoryListJSON } from '../shared/types'
 
 /**
  * Wrapper for directory structure in filesystem. May be recursive
@@ -87,7 +81,7 @@ export class DirectoryList {
         for (const row of directoriesFirst) {
             if (row instanceof DirectoryList) str += row.__toString(deep + 1, traceChar, padUnit)
             else {
-                const out = `File: ${row}\n`
+                const out = `File: ${basename(row)}\n`
                 str += out.padStart(out.length + (deep + 1) * padUnit, traceChar)
             }
         }
@@ -106,7 +100,7 @@ export class DirectoryList {
     public get(fullname = false): DirectoryListJSONContent {
         return this.struct.map(item => {
             if (item instanceof DirectoryList) return item.toJSON(fullname, false)
-            else return item
+            else return fullname ? item : basename(item)
         })
     }
 

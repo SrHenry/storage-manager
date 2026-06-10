@@ -14,6 +14,42 @@
             "require": "./dist/cjs/index.js",
             "default": "./dist/esm/index.js"
         },
+        "./read": {
+            "types": "./types/read/index.d.ts",
+            "import": "./dist/esm/read/index.js",
+            "require": "./dist/cjs/read/index.js",
+            "default": "./dist/esm/read/index.js"
+        },
+        "./write": {
+            "types": "./types/write/index.d.ts",
+            "import": "./dist/esm/write/index.js",
+            "require": "./dist/cjs/write/index.js",
+            "default": "./dist/esm/write/index.js"
+        },
+        "./stream": {
+            "types": "./types/stream/index.d.ts",
+            "import": "./dist/esm/stream/index.js",
+            "require": "./dist/cjs/stream/index.js",
+            "default": "./dist/esm/stream/index.js"
+        },
+        "./metadata": {
+            "types": "./types/metadata/index.d.ts",
+            "import": "./dist/esm/metadata/index.js",
+            "require": "./dist/cjs/metadata/index.js",
+            "default": "./dist/esm/metadata/index.js"
+        },
+        "./directory": {
+            "types": "./types/directory/index.d.ts",
+            "import": "./dist/esm/directory/index.js",
+            "require": "./dist/cjs/directory/index.js",
+            "default": "./dist/esm/directory/index.js"
+        },
+        "./adapters": {
+            "types": "./types/adapters/index.d.ts",
+            "import": "./dist/esm/adapters/index.js",
+            "require": "./dist/cjs/adapters/index.js",
+            "default": "./dist/esm/adapters/index.js"
+        },
         "./package.json": "./package.json"
     },
     "files": [
@@ -23,11 +59,12 @@
     "scripts": {
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
+        "build:generate-adapters": "node ./scripts/generate-adapter-registrations.mjs",
         "build:clean": "node -e \"const fs=require('node:fs');fs.rmSync('./dist',{recursive:true,force:true});fs.rmSync('./types',{recursive:true,force:true})\"",
         "build:esm": "tsc -p tsconfig.esm.json",
         "build:cjs": "tsc -p tsconfig.cjs.json && node -e \"const fs=require('node:fs');fs.writeFileSync('./dist/cjs/package.json',JSON.stringify({type:'commonjs'})+'\\n')\"",
         "build:fix-esm": "node ./scripts/fix-esm-imports.mjs",
-        "build": "yarn build:clean && yarn build:esm && yarn build:fix-esm && yarn build:cjs",
+        "build": "yarn build:generate-adapters && yarn build:clean && yarn build:esm && yarn build:fix-esm && yarn build:cjs",
         "docs": "npx typedoc",
         "lint": "biome lint ./src ./scripts ./vitest.config.ts ./index.ts",
         "lint:fix": "biome lint --write ./src ./scripts ./vitest.config.ts ./index.ts",
