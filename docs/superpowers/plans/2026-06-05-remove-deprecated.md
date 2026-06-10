@@ -14,10 +14,10 @@
 
 Files touched in this plan:
 
-| File                                  | Change                                                                |
-| ------------------------------------- | --------------------------------------------------------------------- |
+| File                                 | Change                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | `src/StorageManager.ts` (1108 lines) | Delete lines 803–1105 (~303 lines: 7 deprecated methods + JSDoc). Rewrite `mkdir` body to use `exists` (line 880). |
-| `src/index.ts` (46 lines)             | Remove 7 destructured names + `//deprecated:` comment block (~8 lines). |
+| `src/index.ts` (46 lines)            | Remove 7 destructured names + `//deprecated:` comment block (~8 lines).                                            |
 
 No new files. No test changes (existing tests cover `mkdir` and `exists`).
 
@@ -26,6 +26,7 @@ No new files. No test changes (existing tests cover `mkdir` and `exists`).
 ## Task 1: Setup worktree and verify baseline
 
 **Files:**
+
 - Worktree: `/tmp/storage-manager-remove-deprecated`
 - Branch: `refactor/remove-deprecated-methods` (off `origin/developer`)
 
@@ -70,6 +71,7 @@ Expected: matches in `src/StorageManager.ts` and `src/index.ts` (baseline state 
 ## Task 2: Refactor `mkdir` to use `exists` instead of `checkExist`
 
 **Files:**
+
 - Modify: `src/StorageManager.ts:880-900` (the `checkExist` call site inside `mkdir`)
 
 - [ ] **Step 1: Replace the `checkExist` call with `exists`**
@@ -77,54 +79,55 @@ Expected: matches in `src/StorageManager.ts` and `src/index.ts` (baseline state 
 In `src/StorageManager.ts`, replace the block from line 880 to line 900 inclusive:
 
 ```ts
-            StorageManager.checkExist(path).then(
-                async () => preHandler(null, path),
-                async () => {
-                    if (lt(process.versions.node, '10.12.0')) {
-                        return path.split('/').map((v, i, arr) =>
-                            fs.mkdir(
-                                this.path.join(String(path.split(v)[0]), v),
-                                options,
-                                (err: NodeJS.ErrnoException | null) => {
-                                    if (arr.length - 1 > i) {
-                                        if (err && err.code !== 'EEXIST') {
-                                            console.error(err)
-                                            preHandler(err)
-                                        }
-                                    } else preHandler(err)
-                                }
-                            )
-                        )
-                    } else return fs.mkdir(path, options, preHandler)
-                }
+StorageManager.checkExist(path).then(
+    async () => preHandler(null, path),
+    async () => {
+        if (lt(process.versions.node, '10.12.0')) {
+            return path.split('/').map((v, i, arr) =>
+                fs.mkdir(
+                    this.path.join(String(path.split(v)[0]), v),
+                    options,
+                    (err: NodeJS.ErrnoException | null) => {
+                        if (arr.length - 1 > i) {
+                            if (err && err.code !== 'EEXIST') {
+                                console.error(err)
+                                preHandler(err)
+                            }
+                        } else preHandler(err)
+                    }
+                )
             )
+        } else return fs.mkdir(path, options, preHandler)
+    }
+)
 ```
 
 with:
 
 ```ts
-            StorageManager.exists(path).then(exists => {
-                if (exists) return preHandler(null, path)
-                if (lt(process.versions.node, '10.12.0')) {
-                    return path.split('/').map((v, i, arr) =>
-                        fs.mkdir(
-                            this.path.join(String(path.split(v)[0]), v),
-                            options,
-                            (err: NodeJS.ErrnoException | null) => {
-                                if (arr.length - 1 > i) {
-                                    if (err && err.code !== 'EEXIST') {
-                                        console.error(err)
-                                        preHandler(err)
-                                    }
-                                } else preHandler(err)
-                            }
-                        )
-                    )
-                } else return fs.mkdir(path, options, preHandler)
-            })
+StorageManager.exists(path).then(exists => {
+    if (exists) return preHandler(null, path)
+    if (lt(process.versions.node, '10.12.0')) {
+        return path.split('/').map((v, i, arr) =>
+            fs.mkdir(
+                this.path.join(String(path.split(v)[0]), v),
+                options,
+                (err: NodeJS.ErrnoException | null) => {
+                    if (arr.length - 1 > i) {
+                        if (err && err.code !== 'EEXIST') {
+                            console.error(err)
+                            preHandler(err)
+                        }
+                    } else preHandler(err)
+                }
+            )
+        )
+    } else return fs.mkdir(path, options, preHandler)
+})
 ```
 
 Notes:
+
 - `exists` returns `Promise<boolean>`, takes one handler with the boolean. We keep the legacy `< 10.12.0` branch for now — `remove-legacy-node` is a separate task.
 - The behavior is equivalent: if path exists → `preHandler(null, path)`; if not → attempt `fs.mkdir`.
 
@@ -161,6 +164,7 @@ Expected: matches only at the `checkExist` method definition itself (no calls). 
 ## Task 3: Delete the seven deprecated methods from `StorageManager.ts`
 
 **Files:**
+
 - Modify: `src/StorageManager.ts` — delete lines 803 through 1105 inclusive
 
 - [ ] **Step 1: Delete the deprecated block**
@@ -205,6 +209,7 @@ Expected: all tests pass. No test references the deleted methods (verified in de
 ## Task 4: Clean up `src/index.ts` destructure
 
 **Files:**
+
 - Modify: `src/index.ts` (lines 32–43)
 
 - [ ] **Step 1: Remove the 7 deprecated names and the `//deprecated:` comment block**

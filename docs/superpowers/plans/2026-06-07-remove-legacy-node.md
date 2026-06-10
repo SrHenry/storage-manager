@@ -12,25 +12,26 @@
 
 ## File Structure
 
-| File | Action | Responsibility |
-|------|--------|----------------|
+| File                    | Action | Responsibility                                                                  |
+| ----------------------- | ------ | ------------------------------------------------------------------------------- |
 | `src/StorageManager.ts` | Modify | Remove semver import, remove legacy branches in `mkdir` and `deleteFromStorage` |
-| `package.json` | Modify | Remove `semver` from dependencies, `@types/semver` from devDependencies |
-| `yarn.lock` | Modify | Updated automatically by `yarn install` |
-| `DirectoryList.js` | Delete | Stale pre-dual-build compiled output |
-| `DirectoryList.d.ts` | Delete | Stale pre-dual-build compiled output |
-| `StorageManager.js` | Delete | Stale pre-dual-build compiled output |
-| `StorageManager.d.ts` | Delete | Stale pre-dual-build compiled output |
-| `index.js` | Delete | Stale pre-dual-build compiled output |
-| `index.d.ts` | Delete | Stale pre-dual-build compiled output |
-| `utils.js` | Delete | Stale pre-dual-build compiled output |
-| `utils.d.ts` | Delete | Stale pre-dual-build compiled output |
+| `package.json`          | Modify | Remove `semver` from dependencies, `@types/semver` from devDependencies         |
+| `yarn.lock`             | Modify | Updated automatically by `yarn install`                                         |
+| `DirectoryList.js`      | Delete | Stale pre-dual-build compiled output                                            |
+| `DirectoryList.d.ts`    | Delete | Stale pre-dual-build compiled output                                            |
+| `StorageManager.js`     | Delete | Stale pre-dual-build compiled output                                            |
+| `StorageManager.d.ts`   | Delete | Stale pre-dual-build compiled output                                            |
+| `index.js`              | Delete | Stale pre-dual-build compiled output                                            |
+| `index.d.ts`            | Delete | Stale pre-dual-build compiled output                                            |
+| `utils.js`              | Delete | Stale pre-dual-build compiled output                                            |
+| `utils.d.ts`            | Delete | Stale pre-dual-build compiled output                                            |
 
 ---
 
 ### Task 1: Remove semver import and legacy mkdir branch
 
 **Files:**
+
 - Modify: `src/StorageManager.ts:1-10` (imports), `src/StorageManager.ts:804-838` (mkdir method)
 
 - [ ] **Step 1: Remove `import { lt } from 'semver'`**
@@ -90,6 +91,7 @@ git commit -S -m "refactor(mkdir): remove legacy Node < 10.12.0 code path"
 ### Task 2: Remove legacy deleteFromStorage branch
 
 **Files:**
+
 - Modify: `src/StorageManager.ts:846-883` (deleteFromStorage method)
 
 - [ ] **Step 1: Simplify `deleteFromStorage` — remove the legacy Node < 12.10.0 branch**
@@ -156,6 +158,7 @@ git commit -S -m "refactor(delete): remove legacy Node < 12.10.0 code path"
 ### Task 3: Remove semver dependency
 
 **Files:**
+
 - Modify: `package.json` (dependencies and devDependencies)
 - Modify: `yarn.lock` (updated by `yarn install`)
 
@@ -209,6 +212,7 @@ git commit -S -m "chore(deps): remove semver and @types/semver"
 ### Task 4: Delete stale pre-dual-build compiled artifacts
 
 **Files:**
+
 - Delete: `DirectoryList.js`, `DirectoryList.d.ts`, `StorageManager.js`, `StorageManager.d.ts`, `index.js`, `index.d.ts`, `utils.js`, `utils.d.ts`
 
 These are untracked files (not in git) — they are stale compiled output from before the dual-build system. No `git rm` needed, just delete from disk.

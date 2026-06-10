@@ -26,7 +26,9 @@ Remove seven legacy public methods that have been marked `@deprecated` in JSDoc,
     ```ts
     StorageManager.checkExist(path).then(
         async () => preHandler(null, path),
-        async () => { /* ...mkdir logic... */ }
+        async () => {
+            /* ...mkdir logic... */
+        }
     )
     ```
 
