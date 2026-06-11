@@ -13,7 +13,7 @@
 
 Do **NOT** create branches, worktrees, or write code until all of the following are confirmed:
 
-1. **Worktree required** — all code-producing work must happen in an ephemeral worktree (`/tmp/<repo-name>-<topic>`), **never** in the main repo checkout. The user may explicitly opt out (e.g. "work in the main checkout" or "no worktree") — but you must never assume this; always use a worktree unless told otherwise
+1. **Worktree required** — all code-producing work must happen in an ephemeral worktree (`.worktrees/<topic>` inside the repo root), **never** in the main repo checkout. The user may explicitly opt out (e.g. "work in the main checkout" or "no worktree") — but you must never assume this; always use a worktree unless told otherwise
 2. **Base branch** — which branch to target:
     - `developer` for features, refactors, and non-urgent changes (default)
     - `master` for hotfixes and urgent production fixes
@@ -199,10 +199,10 @@ This is a **blocking gate** — do not proceed to step 2 until all items below a
 Create both together — the worktree stays alive for the entire PR lifecycle:
 
 ```sh
-git worktree add /tmp/storage-manager-<topic> -b feat/<topic> origin/<base-branch>
+git worktree add .worktrees/<topic> -b feat/<topic> origin/<base-branch>
 ```
 
-Work in the worktree (`/tmp/` prefix — ephemeral, not inside the main repo checkout).
+Work in the worktree (`.worktrees/` directory inside the repo root — persistent across sessions, not `/tmp/`).
 
 **The first step after creating the worktree must be `yarn install`** to set up dependencies. Do not write code, run builds, or execute tests until `yarn install` completes.
 
@@ -238,7 +238,7 @@ Once the PR is merged, clean up everything:
 
 ```sh
 # From the main repo checkout (NOT the worktree):
-git worktree remove /tmp/storage-manager-<topic>
+git worktree remove .worktrees/<topic>
 git fetch --prune
 git branch -d feat/<topic>
 for remote in $(git remote); do git push "$remote" --delete feat/<topic> || echo "WARNING: delete from $remote failed"; done
@@ -261,6 +261,7 @@ for remote in $(git remote); do git push "$remote" --delete feat/<topic> || echo
 - `delete` is a reserved keyword — directory module uses `const deleteFile` + `export { deleteFile as delete }`; the `fs` object uses `delete: deleteFile`
 - `BufferEncoding` is a global type — NOT exported from `node:fs`
 - `fileStream` and `listDirectory` use TypeScript overloads instead of `as any` casts — do not revert to `as any`
+- Worktrees live in `.worktrees/` inside the repo root (not `/tmp/`) — they persist across sessions and are gitignored
 - Zero runtime dependencies (semver removed in PR #8, legacy Node code paths removed)
 
 ## Prohibitions
