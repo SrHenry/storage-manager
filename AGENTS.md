@@ -167,6 +167,7 @@ Before making any commit, the AI harness **must** clarify the commit author iden
 - **Verification step**: Before the first commit, check the resolved `user.name` and `user.email` — if they look like placeholder values (e.g., `Test`, `test@test.com`), stop and ask the user for the correct identity before committing
 - **Override**: If the user explicitly requests a different author (e.g., a co-author, bot identity, or different email), use that instead — but never assume an alternate identity without explicit direction
 - **GPG signing**: When the author identity is confirmed, commits should be GPG-signed (`-S` / `--gpg-sign`) with the key matching the author's email
+- **GPG pinentry timeout**: If GPG signing fails due to pinentry timeout (2–3 consecutive failures), **STOP and wait for the user** — do NOT fall back to unsigned commits. The user may be AFK and needs to interact with the pinentry prompt. Only retry after the user confirms they are ready. Unsigned commits (`-c commit.gpgsign=false`) are allowed **only** when the user explicitly requests it
 
 ### Branch Naming
 
